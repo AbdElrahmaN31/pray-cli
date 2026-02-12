@@ -89,7 +89,7 @@ release:
 
     ### Using Go
     ```bash
-    go install github.com/anashaat/pray-cli/cmd/pray@latest
+    go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest
     ```
 
     ### Download Binary
