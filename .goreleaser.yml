@@ -1,0 +1,157 @@
+# GoReleaser configuration for pray-cli
+# Documentation: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: pray
+    main: ./cmd/pray
+    binary: pray
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: pray-archives
+    builds:
+      - pray
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance Improvements"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "Other Changes"
+      order: 999
+
+release:
+  github:
+    owner: anashaat
+    name: pray-cli
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  footer: |
+    ## Installation
+
+    ### Using Go
+    ```bash
+    go install github.com/anashaat/pray-cli/cmd/pray@latest
+    ```
+
+    ### Download Binary
+    Download the appropriate binary for your platform from the assets below.
+
+    ### Quick Start
+    ```bash
+    # Interactive setup
+    pray init
+
+    # Auto-detect location
+    pray config detect --save
+
+    # Show prayer times
+    pray
+    ```
+
+# Optional: Homebrew tap
+brews:
+  - name: pray
+    repository:
+      owner: anashaat
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    folder: Formula
+    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
+    description: "Islamic prayer times CLI tool"
+    license: "MIT"
+    skip_upload: auto
+    test: |
+      system "#{bin}/pray", "version"
+    install: |
+      bin.install "pray"
+
+# Optional: Scoop bucket for Windows
+scoops:
+  - name: pray
+    repository:
+      owner: anashaat
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
+    description: "Islamic prayer times CLI tool"
+    license: "MIT"
+    skip_upload: auto
+
+# Optional: AUR package
+aurs:
+  - name: pray-bin
+    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
+    description: "Islamic prayer times CLI tool"
+    maintainers:
+      - "anashaat"
+    license: "MIT"
+    private_key: "{{ .Env.AUR_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/pray-bin.git"
+    skip_upload: auto
+    package: |-
+      install -Dm755 "./pray" "${pkgdir}/usr/bin/pray"
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/pray/LICENSE"
+      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/pray/README.md"
+
+# Announce release
+announce:
+  skip: true
