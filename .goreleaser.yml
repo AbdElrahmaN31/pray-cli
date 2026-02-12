@@ -107,7 +107,7 @@ release:
     pray
     ```
 
-# Optional: Homebrew tap
+# Homebrew tap
 brews:
   - name: pray
     repository:
@@ -117,13 +117,13 @@ brews:
     homepage: "https://github.com/AbdElrahmaN31/pray-cli"
     description: "Islamic prayer times CLI tool"
     license: "MIT"
-    skip_upload: auto
+    skip_upload: true
     test: |
       system "#{bin}/pray", "version"
     install: |
       bin.install "pray"
 
-# Optional: Scoop bucket for Windows
+# Scoop bucket for Windows
 scoops:
   - name: pray
     repository:
@@ -133,9 +133,9 @@ scoops:
     homepage: "https://github.com/AbdElrahmaN31/pray-cli"
     description: "Islamic prayer times CLI tool"
     license: "MIT"
-    skip_upload: auto
+    skip_upload: true
 
-# Optional: AUR package
+# AUR package
 aurs:
   - name: pray-bin
     homepage: "https://github.com/AbdElrahmaN31/pray-cli"
@@ -145,7 +145,7 @@ aurs:
     license: "MIT"
     private_key: "{{ .Env.AUR_KEY }}"
     git_url: "ssh://aur@aur.archlinux.org/pray-bin.git"
-    skip_upload: auto
+    skip_upload: true
     package: |-
       install -Dm755 "./pray" "${pkgdir}/usr/bin/pray"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/pray/LICENSE"
