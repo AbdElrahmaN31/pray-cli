@@ -114,7 +114,6 @@ brews:
       owner: anashaat
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    folder: Formula
     homepage: "https://github.com/AbdElrahmaN31/pray-cli"
     description: "Islamic prayer times CLI tool"
     license: "MIT"
