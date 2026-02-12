@@ -51,7 +51,7 @@ A beautiful, feature-rich, and lightning-fast command-line tool for Islamic pray
 ### Using Go Install (Recommended)
 
 ```bash
-go install github.com/anashaat/pray-cli/cmd/pray@latest
+go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest
 ```
 
 ### Binary Download
