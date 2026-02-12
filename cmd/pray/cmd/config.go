@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/anashaat/pray-cli/internal/config"
-	"github.com/anashaat/pray-cli/internal/location"
-	"github.com/anashaat/pray-cli/internal/ui"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/internal/ui"
 )
 
 var configCmd = &cobra.Command{

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anashaat/pray-cli/internal/api"
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 )
 
 func TestGetFormatter(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anashaat/pray-cli/cmd/pray/cmd"
+	"github.com/AbdElrahmaN31/pray-cli/cmd/pray/cmd"
 )
 
 // Version information (set at build time)

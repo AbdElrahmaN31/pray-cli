@@ -4,7 +4,7 @@ package output
 import (
 	"io"
 
-	"github.com/anashaat/pray-cli/internal/api"
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 )
 
 // Formatter is the interface for output formatters

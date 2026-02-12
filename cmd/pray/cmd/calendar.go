@@ -9,9 +9,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/anashaat/pray-cli/internal/calendar"
-	"github.com/anashaat/pray-cli/internal/config"
-	"github.com/anashaat/pray-cli/internal/ui"
+	"github.com/AbdElrahmaN31/pray-cli/internal/calendar"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/ui"
 )
 
 var (

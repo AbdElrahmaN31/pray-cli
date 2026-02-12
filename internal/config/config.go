@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/anashaat/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/internal/location"
 )
 
 // Config represents the application configuration

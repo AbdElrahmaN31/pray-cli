@@ -1096,7 +1096,7 @@ Contributions are welcome! Here's how you can help:
 
 ## 🔗 Links
 
-- **Repository**: [github.com/anashaat/pray-cli](https://github.com/AbdElrahmaN31/pray-cli)
+- **Repository**: [github.com/AbdElrahmaN31/pray-cli](https://github.com/AbdElrahmaN31/pray-cli)
 - **Releases**: [Releases Page](https://github.com/AbdElrahmaN31/pray-cli/releases)
 - **Documentation**: This README and `pray --help`
 - **API Documentation**: [pray.ahmedelywa.com](https://pray.ahmedelywa.com)

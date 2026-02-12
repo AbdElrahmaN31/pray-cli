@@ -12,7 +12,7 @@ import (
 
 const (
 	// GitHubReleasesURL is the API endpoint for GitHub releases
-	GitHubReleasesURL = "https://api.github.com/repos/anashaat/pray-cli/releases/latest"
+	GitHubReleasesURL = "https://api.github.com/repos/AbdElrahmaN31/pray-cli/releases/latest"
 
 	// DefaultTimeout for update checks
 	DefaultTimeout = 5 * time.Second
@@ -203,7 +203,7 @@ func FormatUpdateMessage(result *CheckResult) string {
 
 	return fmt.Sprintf(
 		"\n📦 A new version of pray is available: %s → %s\n"+
-			"   Run 'go install github.com/anashaat/pray-cli/cmd/pray@latest' to update\n"+
+			"   Run 'go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest' to update\n"+
 			"   Or visit: %s\n",
 		result.CurrentVersion,
 		result.LatestVersion,

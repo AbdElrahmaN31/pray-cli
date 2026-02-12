@@ -9,7 +9,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/anashaat/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
 )
 
 var filterMethods string

@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anashaat/pray-cli/internal/api"
-	"github.com/anashaat/pray-cli/internal/config"
-	"github.com/anashaat/pray-cli/internal/location"
-	"github.com/anashaat/pray-cli/internal/output"
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/internal/output"
 )
 
 var todayCmd = &cobra.Command{

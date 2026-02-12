@@ -1,4 +1,4 @@
-module github.com/anashaat/pray-cli
+module github.com/AbdElrahmaN31/pray-cli
 
 go 1.23.5
 

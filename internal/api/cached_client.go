@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/anashaat/pray-cli/internal/cache"
+	"github.com/AbdElrahmaN31/pray-cli/internal/cache"
 )
 
 // CachedClient wraps Client with caching support

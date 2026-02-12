@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/anashaat/pray-cli/internal/config"
-	"github.com/anashaat/pray-cli/internal/update"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/update"
 )
 
 var (

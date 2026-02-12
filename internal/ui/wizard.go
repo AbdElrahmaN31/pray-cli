@@ -13,8 +13,8 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/anashaat/pray-cli/internal/config"
-	"github.com/anashaat/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/internal/config"
+	"github.com/AbdElrahmaN31/pray-cli/internal/location"
 )
 
 // Wizard handles the interactive setup process
