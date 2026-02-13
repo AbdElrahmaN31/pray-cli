@@ -87,13 +87,22 @@ release:
   footer: |
     ## Installation
 
+    ### Quick Install (Recommended)
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/AbdElrahmaN31/pray-cli/main/install.sh | sh
+    ```
+
     ### Using Go
     ```bash
     go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest
     ```
 
     ### Download Binary
-    Download the appropriate binary for your platform from the assets below.
+    Download the appropriate binary for your platform from the assets below:
+    - **Linux**: `pray-cli_{{.Version}}_linux_amd64.tar.gz`
+    - **macOS (Intel)**: `pray-cli_{{.Version}}_darwin_amd64.tar.gz`
+    - **macOS (Apple Silicon)**: `pray-cli_{{.Version}}_darwin_arm64.tar.gz`
+    - **Windows**: `pray-cli_{{.Version}}_windows_amd64.zip`
 
     ### Quick Start
     ```bash
@@ -106,6 +115,8 @@ release:
     # Show prayer times
     pray
     ```
+
+    **Full documentation**: https://github.com/AbdElrahmaN31/pray-cli
 
 # Homebrew tap
 brews:

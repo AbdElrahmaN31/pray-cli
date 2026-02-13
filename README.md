@@ -48,37 +48,83 @@ A beautiful, feature-rich, and lightning-fast command-line tool for Islamic pray
 
 ## 📦 Installation
 
-### Using Go Install (Recommended)
+### Quick Install (Recommended)
+
+**Linux/macOS:**
+```bash
+curl -sSL https://raw.githubusercontent.com/AbdElrahmaN31/pray-cli/main/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://raw.githubusercontent.com/AbdElrahmaN31/pray-cli/main/install.ps1 | iex
+```
+
+### Using Go Install
 
 ```bash
 go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest
 ```
 
-### Binary Download
+### Manual Binary Download
 
-Download pre-built binaries for your platform:
+Download the latest release for your platform from the [Releases Page](https://github.com/AbdElrahmaN31/pray-cli/releases/latest).
 
 **Linux (amd64)**
 ```bash
-curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/latest/download/pray_linux_amd64.tar.gz | tar xz
+# Replace VERSION with actual version number (e.g., 1.0.6)
+VERSION=1.0.6
+curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/download/v${VERSION}/pray-cli_${VERSION}_linux_amd64.tar.gz | tar xz
 sudo mv pray /usr/local/bin/
 ```
 
 **macOS (Apple Silicon)**
 ```bash
-curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/latest/download/pray_darwin_arm64.tar.gz | tar xz
+VERSION=1.0.6
+curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/download/v${VERSION}/pray-cli_${VERSION}_darwin_arm64.tar.gz | tar xz
 sudo mv pray /usr/local/bin/
 ```
 
 **macOS (Intel)**
 ```bash
-curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/latest/download/pray_darwin_amd64.tar.gz | tar xz
+VERSION=1.0.6
+curl -L https://github.com/AbdElrahmaN31/pray-cli/releases/download/v${VERSION}/pray-cli_${VERSION}_darwin_amd64.tar.gz | tar xz
 sudo mv pray /usr/local/bin/
 ```
 
 **Windows**
 
-Download the Windows binary from the [Releases](https://github.com/AbdElrahmaN31/pray-cli/releases) page.
+Download the `.zip` file from the [Releases Page](https://github.com/AbdElrahmaN31/pray-cli/releases/latest), extract it, and add the directory to your PATH.
+
+[//]: # (### Package Managers)
+
+[//]: # (**Homebrew &#40;macOS/Linux&#41;:**)
+
+[//]: # (```bash)
+
+[//]: # (brew install AbdElrahmaN31/tap/pray)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (**Scoop &#40;Windows&#41;:**)
+
+[//]: # (```powershell)
+
+[//]: # (scoop bucket add pray https://github.com/AbdElrahmaN31/scoop-bucket)
+
+[//]: # (scoop install pray)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (**AUR &#40;Arch Linux&#41;:**)
+
+[//]: # (```bash)
+
+[//]: # (yay -S pray-bin)
+
+[//]: # (```)
 
 ### From Source
 
@@ -417,45 +463,45 @@ api_timeout: 30                        # API timeout in seconds
 
 ### Calculation Methods
 
-| ID | Method | Region/Organization |
-|----|--------|---------------------|
-| 1 | University of Islamic Sciences, Karachi | Pakistan, Bangladesh, India, Afghanistan |
-| 2 | Islamic Society of North America (ISNA) | North America (USA, Canada) |
-| 3 | Muslim World League (MWL) | Europe, Far East, parts of Americas |
-| 4 | Umm al-Qura University | Saudi Arabia |
-| 5 | Egyptian General Authority of Survey | Egypt, Syria, Lebanon, Malaysia (default) |
-| 6 | Institute of Geophysics, University of Tehran | Iran, Afghanistan, parts of Azerbaijan |
-| 7 | Gulf Region | Kuwait, Qatar, Bahrain, United Arab Emirates |
-| 8 | Kuwait | Kuwait |
-| 9 | Qatar | Qatar |
-| 10 | Majlis Ugama Islam Singapura | Singapore |
-| 11 | Union Organization Islamic de France | France |
-| 12 | Diyanet İşleri Başkanlığı | Turkey |
-| 13 | Spiritual Administration of Muslims of Russia | Russia |
-| 14 | Moonsighting Committee Worldwide | N/A |
-| 15 | Dubai | United Arab Emirates |
-| 16 | Jabatan Kemajuan Islam Malaysia | Malaysia |
-| 17 | Tunisia | Tunisia |
-| 18 | Algeria | Algeria |
-| 19 | KEMENAG | Indonesia |
-| 20 | Morocco | Morocco |
-| 21 | Comunidade Islamica de Lisboa | Portugal |
-| 22 | Ministry of Awqaf, Islamic Affairs and Holy Places | Jordan |
-| 23 | Presidency of Religious Affairs | Turkey (alternative) |
+| ID | Method                                             | Region/Organization                          |
+|----|----------------------------------------------------|----------------------------------------------|
+| 1  | University of Islamic Sciences, Karachi            | Pakistan, Bangladesh, India, Afghanistan     |
+| 2  | Islamic Society of North America (ISNA)            | North America (USA, Canada)                  |
+| 3  | Muslim World League (MWL)                          | Europe, Far East, parts of Americas          |
+| 4  | Umm al-Qura University                             | Saudi Arabia                                 |
+| 5  | Egyptian General Authority of Survey               | Egypt, Syria, Lebanon, Malaysia (default)    |
+| 6  | Institute of Geophysics, University of Tehran      | Iran, Afghanistan, parts of Azerbaijan       |
+| 7  | Gulf Region                                        | Kuwait, Qatar, Bahrain, United Arab Emirates |
+| 8  | Kuwait                                             | Kuwait                                       |
+| 9  | Qatar                                              | Qatar                                        |
+| 10 | Majlis Ugama Islam Singapura                       | Singapore                                    |
+| 11 | Union Organization Islamic de France               | France                                       |
+| 12 | Diyanet İşleri Başkanlığı                          | Turkey                                       |
+| 13 | Spiritual Administration of Muslims of Russia      | Russia                                       |
+| 14 | Moonsighting Committee Worldwide                   | N/A                                          |
+| 15 | Dubai                                              | United Arab Emirates                         |
+| 16 | Jabatan Kemajuan Islam Malaysia                    | Malaysia                                     |
+| 17 | Tunisia                                            | Tunisia                                      |
+| 18 | Algeria                                            | Algeria                                      |
+| 19 | KEMENAG                                            | Indonesia                                    |
+| 20 | Morocco                                            | Morocco                                      |
+| 21 | Comunidade Islamica de Lisboa                      | Portugal                                     |
+| 22 | Ministry of Awqaf, Islamic Affairs and Holy Places | Jordan                                       |
+| 23 | Presidency of Religious Affairs                    | Turkey (alternative)                         |
 
 Run `pray methods` to see complete details and descriptions.
 
 ### Prayer Event Indices (for --events flag)
 
-| Index | Prayer | Description |
-|-------|--------|-------------|
-| 0 | Fajr | Dawn prayer |
-| 1 | Sunrise | Sunrise time (not a prayer) |
-| 2 | Dhuhr | Noon prayer |
-| 3 | Asr | Afternoon prayer |
-| 4 | Maghrib | Sunset prayer |
-| 5 | Isha | Night prayer |
-| 6 | Midnight | Islamic midnight |
+| Index | Prayer   | Description                 |
+|-------|----------|-----------------------------|
+| 0     | Fajr     | Dawn prayer                 |
+| 1     | Sunrise  | Sunrise time (not a prayer) |
+| 2     | Dhuhr    | Noon prayer                 |
+| 3     | Asr      | Afternoon prayer            |
+| 4     | Maghrib  | Sunset prayer               |
+| 5     | Isha     | Night prayer                |
+| 6     | Midnight | Islamic midnight            |
 
 Example: `--events "0,2,4"` will include only Fajr, Dhuhr, and Maghrib.
 
@@ -547,40 +593,40 @@ $ pray -o json
 
 ### Main Commands
 
-| Command | Description |
-|---------|-------------|
-| `pray` | Show today's prayer times (default command) |
-| `pray today` | Show today's prayer times (explicit alias) |
-| `pray next` | Show next prayer only with time remaining |
-| `pray countdown` | Live countdown to next prayer (updates every second) |
-| `pray get` | Fetch prayer times with custom date |
-| `pray diff <loc1> <loc2>` | Compare prayer times between two locations |
-| `pray methods` | List all available calculation methods |
-| `pray init` | Interactive setup wizard |
-| `pray version` | Show version, commit, and build information |
-| `pray completion` | Generate shell completion scripts |
+| Command                   | Description                                          |
+|---------------------------|------------------------------------------------------|
+| `pray`                    | Show today's prayer times (default command)          |
+| `pray today`              | Show today's prayer times (explicit alias)           |
+| `pray next`               | Show next prayer only with time remaining            |
+| `pray countdown`          | Live countdown to next prayer (updates every second) |
+| `pray get`                | Fetch prayer times with custom date                  |
+| `pray diff <loc1> <loc2>` | Compare prayer times between two locations           |
+| `pray methods`            | List all available calculation methods               |
+| `pray init`               | Interactive setup wizard                             |
+| `pray version`            | Show version, commit, and build information          |
+| `pray completion`         | Generate shell completion scripts                    |
 
 ### Configuration Commands
 
-| Command | Description |
-|---------|-------------|
-| `pray config detect [--save]` | Auto-detect location from IP address |
-| `pray config show` | Display current configuration |
-| `pray config set <key> <value>` | Set a configuration value |
-| `pray config get <key>` | Get a configuration value |
-| `pray config validate` | Validate current configuration |
-| `pray config reset` | Reset configuration to defaults |
-| `pray config edit` | Edit config file in $EDITOR |
-| `pray config export <file>` | Export configuration to file |
-| `pray config import <file>` | Import configuration from file |
-| `pray config location` | Show detailed location information |
+| Command                         | Description                          |
+|---------------------------------|--------------------------------------|
+| `pray config detect [--save]`   | Auto-detect location from IP address |
+| `pray config show`              | Display current configuration        |
+| `pray config set <key> <value>` | Set a configuration value            |
+| `pray config get <key>`         | Get a configuration value            |
+| `pray config validate`          | Validate current configuration       |
+| `pray config reset`             | Reset configuration to defaults      |
+| `pray config edit`              | Edit config file in $EDITOR          |
+| `pray config export <file>`     | Export configuration to file         |
+| `pray config import <file>`     | Import configuration from file       |
+| `pray config location`          | Show detailed location information   |
 
 ### Calendar Commands
 
-| Command | Description |
-|---------|-------------|
-| `pray calendar get` | Download ICS calendar file |
-| `pray calendar url` | Generate calendar subscription URL |
+| Command                   | Description                             |
+|---------------------------|-----------------------------------------|
+| `pray calendar get`       | Download ICS calendar file              |
+| `pray calendar url`       | Generate calendar subscription URL      |
 | `pray calendar subscribe` | Show detailed subscription instructions |
 
 **Calendar Flags:**
@@ -593,57 +639,57 @@ $ pray -o json
 
 ### Cache Commands
 
-| Command | Description |
-|---------|-------------|
-| `pray cache show` | Display cache status, size, and file count |
-| `pray cache clear` | Clear all cached prayer times data |
-| `pray cache path` | Show cache directory path |
+| Command            | Description                                |
+|--------------------|--------------------------------------------|
+| `pray cache show`  | Display cache status, size, and file count |
+| `pray cache clear` | Clear all cached prayer times data         |
+| `pray cache path`  | Show cache directory path                  |
 
 ### Global Flags
 
 #### Location Flags
-| Flag | Description |
-|------|-------------|
+| Flag                     | Description                            |
+|--------------------------|----------------------------------------|
 | `-a, --address <string>` | City or address (e.g., "Cairo, Egypt") |
-| `--lat <float>` | Latitude in decimal degrees |
-| `--lon <float>` | Longitude in decimal degrees |
-| `-A, --auto` | Auto-detect location from IP address |
+| `--lat <float>`          | Latitude in decimal degrees            |
+| `--lon <float>`          | Longitude in decimal degrees           |
+| `-A, --auto`             | Auto-detect location from IP address   |
 
 #### Calculation & Display Flags
-| Flag | Description |
-|------|-------------|
-| `-m, --method <int>` | Calculation method ID (1-23, default: 5) |
-| `-l, --lang <string>` | Language: en or ar (default: en) |
-| `--qibla` | Include Qibla direction |
-| `--dua` | Include daily Du'a/Adhkar |
-| `--hijri <mode>` | Hijri date: title/desc/both/none |
+| Flag                  | Description                              |
+|-----------------------|------------------------------------------|
+| `-m, --method <int>`  | Calculation method ID (1-23, default: 5) |
+| `-l, --lang <string>` | Language: en or ar (default: en)         |
+| `--qibla`             | Include Qibla direction                  |
+| `--dua`               | Include daily Du'a/Adhkar                |
+| `--hijri <mode>`      | Hijri date: title/desc/both/none         |
 
 #### Feature Flags
-| Flag | Description |
-|------|-------------|
-| `--traveler` | Enable travel/Qasr mode (shortened prayers) |
-| `--jumuah` | Add Jumu'ah (Friday) prayer events |
-| `--ramadan` | Enable Ramadan mode (Iftar, Suhoor, Taraweeh) |
+| Flag         | Description                                   |
+|--------------|-----------------------------------------------|
+| `--traveler` | Enable travel/Qasr mode (shortened prayers)   |
+| `--jumuah`   | Add Jumu'ah (Friday) prayer events            |
+| `--ramadan`  | Enable Ramadan mode (Iftar, Suhoor, Taraweeh) |
 
 #### Output Flags
-| Flag | Description |
-|------|-------------|
+| Flag                    | Description                                    |
+|-------------------------|------------------------------------------------|
 | `-o, --output <format>` | Output format: table/pretty/json/slack/discord |
-| `-f, --file <path>` | Save output to file |
-| `--no-color` | Disable colored output |
+| `-f, --file <path>`     | Save output to file                            |
+| `--no-color`            | Disable colored output                         |
 
 #### Other Flags
-| Flag | Description |
-|------|-------------|
-| `--save` | Save current flags as default config |
-| `--no-save` | Don't save to config (one-time use) |
-| `--no-cache` | Bypass cache, force fresh API data |
-| `-v, --verbose` | Verbose output (show API calls, debug info) |
-| `-q, --quiet` | Minimal output (errors only) |
-| `--config <path>` | Custom config file path |
-| `-h, --help` | Show help for any command |
+| Flag              | Description                                 |
+|-------------------|---------------------------------------------|
+| `--save`          | Save current flags as default config        |
+| `--no-save`       | Don't save to config (one-time use)         |
+| `--no-cache`      | Bypass cache, force fresh API data          |
+| `-v, --verbose`   | Verbose output (show API calls, debug info) |
+| `-q, --quiet`     | Minimal output (errors only)                |
+| `--config <path>` | Custom config file path                     |
+| `-h, --help`      | Show help for any command                   |
 
-## 🏗️ Project Structure
+## 🗂️ Project Structure
 
 ```
 pray-cli/
@@ -720,7 +766,7 @@ pray-cli/
 └── README.md            # This file
 ```
 
-## 🌐 API & Data Sources
+## 🌍 API & Data Sources
 
 ### Prayer Times API
 
@@ -829,7 +875,7 @@ github.com/olekukonko/tablewriter // ASCII tables
 gopkg.in/yaml.v3          // YAML parsing
 ```
 
-See `go.mod` for complete dependency list.
+See `go.mod` for a complete dependency list.
 
 ## 🧪 Testing
 
@@ -879,7 +925,7 @@ git push origin v1.0.0
 - macOS: amd64 (Intel), arm64 (Apple Silicon)
 - Windows: amd64
 
-## 🐛 Troubleshooting
+## 🛠 Troubleshooting
 
 ### Common Issues
 
@@ -955,7 +1001,7 @@ pray config show  # Shows config file location
 pray cache path   # Shows cache directory
 ```
 
-## 🔐 Privacy & Security
+## 🔒 Privacy & Security
 
 - **Location Detection**: IP-based location detection is optional. You can always use manual addresses or coordinates.
 - **Data Storage**: Only configuration and cached prayer times are stored locally. No personal data is sent to external servers.
