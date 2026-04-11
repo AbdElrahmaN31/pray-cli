@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 // DiscordFormatter formats output as Discord embed JSON
@@ -96,6 +98,18 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 			Value:  value,
 			Inline: true,
 		})
+	}
+
+	// Add Du'a field if enabled
+	if data.ShowDua {
+		dua := prayer.GetDailyDua(time.Now())
+		if dua != nil {
+			fields = append(fields, DiscordField{
+				Name:   "📖 Today's Du'a",
+				Value:  fmt.Sprintf("%s\n*%s*\n\"%s\" — %s", dua.Arabic, dua.Transliteration, dua.Translation, dua.Reference),
+				Inline: false,
+			})
+		}
 	}
 
 	// Discord color (blue: 0x1DA1F2 = 1942002)

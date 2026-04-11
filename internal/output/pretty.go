@@ -4,9 +4,13 @@ package output
 import (
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
+
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 // PrettyFormatter formats output with colors and emojis
@@ -43,6 +47,14 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 		fmt.Fprintf(w, " | %s %s %s", hijri.Day, hijri.Month.En, hijri.Year)
 	}
 	fmt.Fprintln(w)
+
+	// Hijri holidays
+	if data.HijriHolidays && len(date.Hijri.Holidays) > 0 {
+		for _, holiday := range date.Hijri.Holidays {
+			fmt.Fprintf(w, "🎉 %s\n", holiday)
+		}
+	}
+
 	fmt.Fprintln(w)
 
 	// Prayers
@@ -83,12 +95,33 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 		}
 	}
 
+	// Parse iqama offsets
+	var iqamaOffsets []int
+	if data.IqamaEnabled && data.IqamaOffsets != "" {
+		parts := strings.Split(data.IqamaOffsets, ",")
+		for _, p := range parts {
+			offset, err := strconv.Atoi(strings.TrimSpace(p))
+			if err != nil {
+				offset = 0
+			}
+			iqamaOffsets = append(iqamaOffsets, offset)
+		}
+	}
+
 	// Print prayers
 	for i, p := range prayers {
 		status := ""
 		prayerTime, err := parseTimeToday(p.time, now)
 
 		prayerDisplay := fmt.Sprintf("%s %-8s  %s", p.emoji, p.name, p.time)
+
+		// Add iqama time
+		if data.IqamaEnabled && i < len(iqamaOffsets) && iqamaOffsets[i] > 0 {
+			if err == nil {
+				iqamaTime := prayerTime.Add(time.Duration(iqamaOffsets[i]) * time.Minute)
+				prayerDisplay += dim(fmt.Sprintf("  (Iqama: %s)", iqamaTime.Format("15:04")))
+			}
+		}
 
 		if err == nil {
 			if now.After(prayerTime) {
@@ -115,9 +148,16 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 		fmt.Fprintf(w, "🧭 Qibla Direction: %s (%.1f°)\n", green(compass), data.Qibla.Direction)
 	}
 
-	// Du'a placeholder
+	// Du'a
 	if data.ShowDua {
-		fmt.Fprintf(w, "📖 Today's Du'a: %s\n", dim("\"Allahumma inni as'aluka...\"\n"))
+		dua := prayer.GetDailyDua(time.Now())
+		if dua != nil {
+			fmt.Fprintf(w, "📖 Today's Du'a:\n")
+			fmt.Fprintf(w, "   %s\n", dua.Arabic)
+			fmt.Fprintf(w, "   %s\n", dim(dua.Transliteration))
+			fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("\"%s\"", dua.Translation)))
+			fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("— %s", dua.Reference)))
+		}
 	}
 
 	// Method
