@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -123,85 +124,19 @@ func sanitizeFilename(name string) string {
 
 	result := name
 	for _, r := range replacer {
-		result = replaceAll(result, r.old, r.new)
+		result = strings.ReplaceAll(result, r.old, r.new)
 	}
 
 	// Convert to lowercase
-	result = toLowerCase(result)
+	result = strings.ToLower(result)
 
 	// Remove multiple consecutive dashes
-	for contains(result, "--") {
-		result = replaceAll(result, "--", "-")
+	for strings.Contains(result, "--") {
+		result = strings.ReplaceAll(result, "--", "-")
 	}
 
 	// Trim leading/trailing dashes
-	result = trim(result, "-")
+	result = strings.Trim(result, "-")
 
 	return result
-}
-
-func replaceAll(s, old, new string) string {
-	for i := 0; i <= len(s)-len(old); i++ {
-		if len(s) >= i+len(old) && s[i:i+len(old)] == old {
-			s = s[:i] + new + s[i+len(old):]
-			if new != "" {
-				i += len(new) - 1
-			} else {
-				i--
-			}
-		}
-	}
-	return s
-}
-
-func toLowerCase(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + 32
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func trim(s, cutset string) string {
-	for len(s) > 0 {
-		found := false
-		for i := 0; i < len(cutset); i++ {
-			if s[0] == cutset[i] {
-				s = s[1:]
-				found = true
-				break
-			}
-		}
-		if !found {
-			break
-		}
-	}
-	for len(s) > 0 {
-		found := false
-		for i := 0; i < len(cutset); i++ {
-			if s[len(s)-1] == cutset[i] {
-				s = s[:len(s)-1]
-				found = true
-				break
-			}
-		}
-		if !found {
-			break
-		}
-	}
-	return s
 }

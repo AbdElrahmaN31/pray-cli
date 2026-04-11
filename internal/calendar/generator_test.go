@@ -3,10 +3,12 @@ package calendar
 import (
 	"strings"
 	"testing"
+
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 )
 
 func TestNewCalendarParams(t *testing.T) {
-	params := NewCalendarParams()
+	params := api.NewCalendarParams()
 
 	if params == nil {
 		t.Fatal("NewCalendarParams returned nil")
@@ -31,7 +33,7 @@ func TestNewCalendarParams(t *testing.T) {
 }
 
 func TestCalendarParamsBuilders(t *testing.T) {
-	params := NewCalendarParams()
+	params := api.NewCalendarParams()
 
 	// Test builder methods
 	params.WithCoordinates(30.0, 31.0)
@@ -88,13 +90,13 @@ func TestCalendarParamsBuilders(t *testing.T) {
 func TestGenerateICSURL(t *testing.T) {
 	tests := []struct {
 		name     string
-		params   *CalendarParams
+		params   *api.CalendarParams
 		contains []string
 	}{
 		{
 			name: "basic with coordinates",
-			params: func() *CalendarParams {
-				p := NewCalendarParams()
+			params: func() *api.CalendarParams {
+				p := api.NewCalendarParams()
 				p.WithCoordinates(30.0, 31.0)
 				return p
 			}(),
@@ -102,8 +104,8 @@ func TestGenerateICSURL(t *testing.T) {
 		},
 		{
 			name: "basic with address",
-			params: func() *CalendarParams {
-				p := NewCalendarParams()
+			params: func() *api.CalendarParams {
+				p := api.NewCalendarParams()
 				p.WithAddress("Cairo, Egypt")
 				return p
 			}(),
@@ -111,8 +113,8 @@ func TestGenerateICSURL(t *testing.T) {
 		},
 		{
 			name: "with jumuah",
-			params: func() *CalendarParams {
-				p := NewCalendarParams()
+			params: func() *api.CalendarParams {
+				p := api.NewCalendarParams()
 				p.WithCoordinates(30.0, 31.0)
 				p.WithJumuah(true, 60)
 				return p
@@ -121,19 +123,19 @@ func TestGenerateICSURL(t *testing.T) {
 		},
 		{
 			name: "with ramadan",
-			params: func() *CalendarParams {
-				p := NewCalendarParams()
+			params: func() *api.CalendarParams {
+				p := api.NewCalendarParams()
 				p.WithCoordinates(30.0, 31.0)
 				p.WithRamadan(true)
 				p.IftarDuration = 30
 				return p
 			}(),
-			contains: []string{"ramadan=true", "iftarDuration=30"},
+			contains: []string{"ramadanMode=true", "iftarDuration=30"},
 		},
 		{
 			name: "with arabic language",
-			params: func() *CalendarParams {
-				p := NewCalendarParams()
+			params: func() *api.CalendarParams {
+				p := api.NewCalendarParams()
 				p.WithCoordinates(30.0, 31.0)
 				p.WithLanguage("ar")
 				return p
