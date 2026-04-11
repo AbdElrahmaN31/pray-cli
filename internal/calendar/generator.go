@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 )
 
 const (
@@ -12,55 +14,8 @@ const (
 	BaseURL = "https://pray.ahmedelywa.com"
 )
 
-// CalendarParams contains parameters for generating a calendar
-type CalendarParams struct {
-	// Location
-	Latitude  float64
-	Longitude float64
-	Address   string
-
-	// Calendar settings
-	Method   int
-	Duration int    // Event duration in minutes
-	Months   int    // Number of months to generate
-	Alarm    string // Comma-separated alarm offsets
-	Events   string // Events to include
-
-	// Display settings
-	Language string
-	Color    string
-	Hijri    string // "title", "desc", "both", "none"
-
-	// Special features
-	Jumuah           bool
-	JumuahDuration   int
-	Qibla            bool
-	Dua              bool
-	Traveler         bool
-	Ramadan          bool
-	IftarDuration    int
-	TaraweehDuration int
-	SuhoorDuration   int
-	HijriHolidays    bool
-	Iqama            string
-}
-
-// NewCalendarParams creates default calendar parameters
-func NewCalendarParams() *CalendarParams {
-	return &CalendarParams{
-		Method:   5, // Egyptian
-		Duration: 25,
-		Months:   3,
-		Alarm:    "5,10,15",
-		Events:   "all",
-		Language: "en",
-		Color:    "#1e90ff",
-		Hijri:    "desc",
-	}
-}
-
 // GenerateICSURL generates the URL for downloading an ICS calendar file
-func GenerateICSURL(params *CalendarParams) string {
+func GenerateICSURL(params *api.CalendarParams) string {
 	query := url.Values{}
 
 	// Location
@@ -134,12 +89,12 @@ func GenerateICSURL(params *CalendarParams) string {
 	}
 
 	if params.Ramadan {
-		query.Set("ramadan", "true")
+		query.Set("ramadanMode", "true")
 		if params.IftarDuration > 0 {
 			query.Set("iftarDuration", fmt.Sprintf("%d", params.IftarDuration))
 		}
 		if params.TaraweehDuration > 0 {
-			query.Set("taraweehDuration", fmt.Sprintf("%d", params.TaraweehDuration))
+			query.Set("traweehDuration", fmt.Sprintf("%d", params.TaraweehDuration))
 		}
 		if params.SuhoorDuration > 0 {
 			query.Set("suhoorDuration", fmt.Sprintf("%d", params.SuhoorDuration))
@@ -155,66 +110,4 @@ func GenerateICSURL(params *CalendarParams) string {
 	}
 
 	return fmt.Sprintf("%s/api/prayer-times.ics?%s", BaseURL, query.Encode())
-}
-
-// WithCoordinates sets the coordinates
-func (p *CalendarParams) WithCoordinates(lat, lon float64) *CalendarParams {
-	p.Latitude = lat
-	p.Longitude = lon
-	return p
-}
-
-// WithAddress sets the address
-func (p *CalendarParams) WithAddress(address string) *CalendarParams {
-	p.Address = address
-	return p
-}
-
-// WithMethod sets the calculation method
-func (p *CalendarParams) WithMethod(method int) *CalendarParams {
-	p.Method = method
-	return p
-}
-
-// WithDuration sets the event duration
-func (p *CalendarParams) WithDuration(duration int) *CalendarParams {
-	p.Duration = duration
-	return p
-}
-
-// WithMonths sets the number of months
-func (p *CalendarParams) WithMonths(months int) *CalendarParams {
-	p.Months = months
-	return p
-}
-
-// WithAlarm sets the alarm offsets
-func (p *CalendarParams) WithAlarm(alarm string) *CalendarParams {
-	p.Alarm = alarm
-	return p
-}
-
-// WithLanguage sets the language
-func (p *CalendarParams) WithLanguage(lang string) *CalendarParams {
-	p.Language = lang
-	return p
-}
-
-// WithColor sets the calendar color
-func (p *CalendarParams) WithColor(color string) *CalendarParams {
-	p.Color = color
-	return p
-}
-
-// WithJumuah enables Jumu'ah prayer
-func (p *CalendarParams) WithJumuah(enabled bool, duration int) *CalendarParams {
-	p.Jumuah = enabled
-	p.JumuahDuration = duration
-	return p
-}
-
-// WithRamadan enables Ramadan mode
-func (p *CalendarParams) WithRamadan(enabled bool) *CalendarParams {
-	p.Ramadan = enabled
-	return p
 }
