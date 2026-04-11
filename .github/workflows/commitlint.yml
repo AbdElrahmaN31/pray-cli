@@ -26,6 +26,10 @@ jobs:
             if [ -z "$msg" ]; then
               continue
             fi
+            # Skip auto-generated merge commits
+            if echo "$msg" | grep -Eq '^Merge '; then
+              continue
+            fi
             if ! echo "$msg" | grep -Eq "$PATTERN"; then
               echo "::error::Invalid commit message: '$msg'"
               echo "  Expected format: <type>[optional scope]: <description>"

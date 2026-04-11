@@ -167,9 +167,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&noCache, "no-cache", false, "bypass cache, force fresh data")
 
 	// Bind flags to viper
-	viper.BindPFlag("output.format", rootCmd.PersistentFlags().Lookup("output"))
-	viper.BindPFlag("method", rootCmd.PersistentFlags().Lookup("method"))
-	viper.BindPFlag("language", rootCmd.PersistentFlags().Lookup("lang"))
+	_ = viper.BindPFlag("output.format", rootCmd.PersistentFlags().Lookup("output"))
+	_ = viper.BindPFlag("method", rootCmd.PersistentFlags().Lookup("method"))
+	_ = viper.BindPFlag("language", rootCmd.PersistentFlags().Lookup("lang"))
 }
 
 // initConfig reads in config file and ENV variables

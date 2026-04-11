@@ -176,10 +176,10 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 			coloredDiff = yellow("same")
 		}
 
-		table.Append(p.name, p.time1, p.time2, coloredDiff)
+		_ = table.Append(p.name, p.time1, p.time2, coloredDiff)
 	}
 
-	table.Render()
+	_ = table.Render()
 
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "⚙️  Method: %s\n", config.GetMethodName(methodID))

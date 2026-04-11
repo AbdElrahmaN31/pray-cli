@@ -139,14 +139,14 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 				iqamaTime := prayerDateTime.Add(time.Duration(iqamaOffsets[i]) * time.Minute)
 				iqamaStr = iqamaTime.Format("15:04")
 			}
-			table.Append(prayerName, prayerTime, iqamaStr, status)
+			_ = table.Append(prayerName, prayerTime, iqamaStr, status)
 		} else {
-			table.Append(prayerName, prayerTime, status)
+			_ = table.Append(prayerName, prayerTime, status)
 		}
 	}
 
 	fmt.Fprintln(w, "├──────────────────────────────────────────────────┤")
-	table.Render()
+	_ = table.Render()
 
 	// Footer with Qibla and Method
 	fmt.Fprintf(w, "├──────────────────────────────────────────────────┤\n")

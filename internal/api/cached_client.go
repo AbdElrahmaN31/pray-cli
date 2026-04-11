@@ -78,7 +78,7 @@ func (cc *CachedClient) GetPrayerTimes(ctx context.Context, params *PrayerTimesP
 
 	// Store in cache
 	if data, err := json.Marshal(result); err == nil {
-		cc.cache.Set(key, data)
+		_ = cc.cache.Set(key, data)
 	}
 
 	return result, nil
@@ -114,7 +114,7 @@ func (cc *CachedClient) GetPrayerTimesByAddress(ctx context.Context, params *Pra
 
 	// Store in cache
 	if data, err := json.Marshal(result); err == nil {
-		cc.cache.Set(key, data)
+		_ = cc.cache.Set(key, data)
 	}
 
 	return result, nil
@@ -149,7 +149,7 @@ func (cc *CachedClient) GetQibla(ctx context.Context, latitude, longitude float6
 
 	// Store in cache
 	if data, err := json.Marshal(result); err == nil {
-		cc.cache.Set(key, data)
+		_ = cc.cache.Set(key, data)
 	}
 
 	return result, nil

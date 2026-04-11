@@ -57,7 +57,7 @@ prayer times based on specific astronomical angles.`,
 			table.Append(cyan(fmt.Sprintf("%d", m.ID)), m.Name, m.Description)
 		}
 
-		table.Render()
+		_ = table.Render()
 		fmt.Println()
 		fmt.Println("Use -m or --method flag to select a method:")
 		fmt.Println("  pray -m 5           Use Egyptian method")
