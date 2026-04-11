@@ -47,6 +47,17 @@ archives:
       - README.md
       - LICENSE
 
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    output: true
+    args:
+      - sign-blob
+      - "--yes"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+
 checksum:
   name_template: "checksums.txt"
 
@@ -117,51 +128,3 @@ release:
     ```
 
     **Full documentation**: https://github.com/AbdElrahmaN31/pray-cli
-
-# Homebrew tap
-brews:
-  - name: pray
-    repository:
-      owner: AbdElrahmaN31
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
-    description: "Islamic prayer times CLI tool"
-    license: "MIT"
-    skip_upload: true
-    test: |
-      system "#{bin}/pray", "version"
-    install: |
-      bin.install "pray"
-
-# Scoop bucket for Windows
-scoops:
-  - name: pray
-    repository:
-      owner: AbdElrahmaN31
-      name: scoop-bucket
-      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
-    description: "Islamic prayer times CLI tool"
-    license: "MIT"
-    skip_upload: true
-
-# AUR package
-aurs:
-  - name: pray-bin
-    homepage: "https://github.com/AbdElrahmaN31/pray-cli"
-    description: "Islamic prayer times CLI tool"
-    maintainers:
-      - "anashaat"
-    license: "MIT"
-    private_key: "{{ .Env.AUR_KEY }}"
-    git_url: "ssh://aur@aur.archlinux.org/pray-bin.git"
-    skip_upload: true
-    package: |-
-      install -Dm755 "./pray" "${pkgdir}/usr/bin/pray"
-      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/pray/LICENSE"
-      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/pray/README.md"
-
-# Announce release
-announce:
-  skip: true
