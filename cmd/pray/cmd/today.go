@@ -10,7 +10,6 @@ import (
 
 	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 	"github.com/AbdElrahmaN31/pray-cli/internal/config"
-	"github.com/AbdElrahmaN31/pray-cli/internal/location"
 	"github.com/AbdElrahmaN31/pray-cli/internal/output"
 )
 
@@ -33,63 +32,22 @@ func runTodayCommand(cmd *cobra.Command, args []string) error {
 func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 	cfg := GetConfig()
 
-	// Determine location
-	var lat, lon float64
-	var locationStr string
-	var tz string
-	var detectedLoc *location.Location
-
-	// Priority: flags > config
-	if autoDetect {
-		// Auto-detect location
-		detector := location.NewDetector()
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-
-		loc, err := detector.DetectFromIP(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to auto-detect location: %w", err)
-		}
-		lat = loc.Latitude
-		lon = loc.Longitude
-		locationStr = loc.GetDisplayAddress()
-		tz = loc.Timezone
-		detectedLoc = loc
-	} else if address != "" {
-		// Use address from flag
-		locationStr = address
-	} else if latitude != 0 || longitude != 0 {
-		// Use coordinates from flags
-		lat = latitude
-		lon = longitude
-		locationStr = fmt.Sprintf("%.4f, %.4f", lat, lon)
-	} else if cfg.IsConfigured() {
-		// Use config
-		lat = cfg.Location.Latitude
-		lon = cfg.Location.Longitude
-		locationStr = cfg.Location.GetDisplayAddress()
-		tz = cfg.Location.Timezone
-	} else {
-		fmt.Println("👋 Welcome! No location configured.")
-		fmt.Println()
-		fmt.Println("Set your location using one of these options:")
-		fmt.Println("  pray config detect --save    Auto-detect from IP")
-		fmt.Println("  pray --auto                  Auto-detect (one-time)")
-		fmt.Println("  pray -a \"Cairo, Egypt\"       Specify a city")
-		fmt.Println("  pray init                    Interactive setup")
+	// Resolve location
+	loc, err := resolveLocation()
+	if err != nil {
+		return err
+	}
+	if loc == nil {
+		printNoLocationMessage()
 		return nil
 	}
 
-	// Determine method
-	methodID := cfg.Method
-	if method != 0 {
-		methodID = method
-	}
+	methodID := resolveMethod()
 
-	// Handle --save flag: save current settings to config
-	if ShouldSaveConfig() {
-		if detectedLoc != nil {
-			cfg.Location = *detectedLoc
+	// Handle --save flag (only if --no-save is not set)
+	if ShouldSaveConfig() && !noSaveConfig {
+		if loc.Detected != nil {
+			cfg.Location = *loc.Detected
 		} else if address != "" {
 			cfg.Location.Address = address
 			cfg.Location.Source = "manual"
@@ -122,6 +80,12 @@ func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 		if ramadanMode {
 			cfg.Ramadan.Enabled = true
 		}
+		if iqamaEnabled {
+			cfg.Iqama.Enabled = true
+		}
+		if hijriHolidays {
+			cfg.Features.HijriHolidays = true
+		}
 		if outputFormat != "" {
 			cfg.Output.Format = outputFormat
 		}
@@ -134,32 +98,16 @@ func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 		}
 	}
 
-	// Create API client
-	client := api.NewClient(api.WithTimeout(time.Duration(cfg.APITimeout) * time.Second))
+	// Create API client with caching
+	client, err := createAPIClient()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.APITimeout)*time.Second)
 	defer cancel()
 
-	// Build params
-	params := api.NewPrayerTimesParams().
-		WithDate(date).
-		WithMethod(methodID)
-
-	var resp *api.PrayerTimesResponse
-	var err error
-
-	if address != "" {
-		// Fetch by address
-		params.WithAddress(address)
-		resp, err = client.GetPrayerTimesByAddress(ctx, params)
-	} else {
-		// Fetch by coordinates
-		params.WithCoordinates(lat, lon)
-		if tz != "" {
-			params.WithTimezone(tz)
-		}
-		resp, err = client.GetPrayerTimes(ctx, params)
-	}
-
+	// Fetch prayer times
+	resp, err := fetchPrayerTimes(ctx, client, loc, methodID, date)
 	if err != nil {
 		return fmt.Errorf("failed to fetch prayer times: %w", err)
 	}
@@ -167,8 +115,8 @@ func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 	// Get Qibla if enabled (use flag helpers)
 	var qibla *api.QiblaData
 	qiblaEnabled := ShouldShowQibla() || outputFormat == "json" || outputFormat == "webhook"
-	if qiblaEnabled && (lat != 0 && lon != 0) {
-		qiblaResp, err := client.GetQibla(ctx, lat, lon)
+	if qiblaEnabled && (loc.Latitude != 0 && loc.Longitude != 0) {
+		qiblaResp, err := client.GetQibla(ctx, loc.Latitude, loc.Longitude)
 		if err == nil {
 			qibla = &qiblaResp.Data
 		}
@@ -180,16 +128,19 @@ func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 
 	// Prepare output data
 	data := &output.PrayerData{
-		Response:    resp,
-		Location:    locationStr,
-		Method:      config.GetMethodName(methodID),
-		Qibla:       qibla,
-		ShowQibla:   ShouldShowQibla(),
-		ShowDua:     ShouldShowDua(),
-		ShowHijri:   hijri != "none",
-		HijriFormat: hijri,
-		Language:    lang,
-		NoColor:     noColor,
+		Response:      resp,
+		Location:      loc.DisplayName,
+		Method:        config.GetMethodName(methodID),
+		Qibla:         qibla,
+		ShowQibla:     ShouldShowQibla(),
+		ShowDua:       ShouldShowDua(),
+		ShowHijri:     hijri != "none",
+		HijriFormat:   hijri,
+		Language:      lang,
+		NoColor:       noColor,
+		IqamaEnabled:  IsIqamaEnabled(),
+		IqamaOffsets:  GetConfig().Iqama.Offsets,
+		HijriHolidays: IsHijriHolidays(),
 	}
 
 	// Determine output format

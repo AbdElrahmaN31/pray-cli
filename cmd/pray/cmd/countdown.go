@@ -13,7 +13,7 @@ import (
 
 	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 	"github.com/AbdElrahmaN31/pray-cli/internal/config"
-	"github.com/AbdElrahmaN31/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 var countdownCmd = &cobra.Command{
@@ -37,87 +37,62 @@ func init() {
 func runCountdownCommand(cmd *cobra.Command, args []string) error {
 	cfg := GetConfig()
 
-	// Determine location
-	var lat, lon float64
-	var locationStr string
-	var tz string
-
-	if autoDetect {
-		detector := location.NewDetector()
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-
-		loc, err := detector.DetectFromIP(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to auto-detect location: %w", err)
-		}
-		lat = loc.Latitude
-		lon = loc.Longitude
-		locationStr = loc.GetDisplayAddress()
-		tz = loc.Timezone
-	} else if address != "" {
-		locationStr = address
-	} else if latitude != 0 || longitude != 0 {
-		lat = latitude
-		lon = longitude
-		locationStr = fmt.Sprintf("%.4f, %.4f", lat, lon)
-	} else if cfg.IsConfigured() {
-		lat = cfg.Location.Latitude
-		lon = cfg.Location.Longitude
-		locationStr = cfg.Location.GetDisplayAddress()
-		tz = cfg.Location.Timezone
-	} else {
+	// Resolve location
+	loc, err := resolveLocation()
+	if err != nil {
+		return err
+	}
+	if loc == nil {
 		fmt.Println("👋 No location configured. Run 'pray init' or 'pray config detect --save'")
 		return nil
 	}
 
-	// Determine method
-	methodID := cfg.Method
-	if method != 0 {
-		methodID = method
-	}
+	methodID := resolveMethod()
 
-	// Fetch prayer times
-	client := api.NewClient(api.WithTimeout(time.Duration(cfg.APITimeout) * time.Second))
+	// Create API client with caching
+	client, err := createAPIClient()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.APITimeout)*time.Second)
 	defer cancel()
 
-	params := api.NewPrayerTimesParams().
-		WithDate(time.Now()).
-		WithMethod(methodID)
-
-	var resp *api.PrayerTimesResponse
-	var err error
-
-	if address != "" {
-		params.WithAddress(address)
-		resp, err = client.GetPrayerTimesByAddress(ctx, params)
-	} else {
-		params.WithCoordinates(lat, lon)
-		if tz != "" {
-			params.WithTimezone(tz)
-		}
-		resp, err = client.GetPrayerTimes(ctx, params)
-	}
-
+	// Fetch prayer times
+	resp, err := fetchPrayerTimes(ctx, client, loc, methodID, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to fetch prayer times: %w", err)
 	}
 
+	// Get Qibla if enabled and coords available
+	var qibla *api.QiblaData
+	if ShouldShowQibla() && loc.Latitude != 0 && loc.Longitude != 0 {
+		qiblaResp, err := client.GetQibla(ctx, loc.Latitude, loc.Longitude)
+		if err == nil {
+			qibla = &qiblaResp.Data
+		}
+	}
+
 	// Load timezone
-	var loc *time.Location
-	if tz != "" {
-		loc, err = time.LoadLocation(tz)
+	var tzLoc *time.Location
+	if loc.Timezone != "" {
+		tzLoc, err = time.LoadLocation(loc.Timezone)
 		if err != nil {
-			loc = time.Local
+			tzLoc = time.Local
 		}
 	} else if resp.Data.Meta.Timezone != "" {
-		loc, err = time.LoadLocation(resp.Data.Meta.Timezone)
+		tzLoc, err = time.LoadLocation(resp.Data.Meta.Timezone)
 		if err != nil {
-			loc = time.Local
+			tzLoc = time.Local
 		}
 	} else {
-		loc = time.Local
+		tzLoc = time.Local
+	}
+
+	// Determine language
+	lang := GetLanguage()
+	prayerNames := config.PrayerNames
+	if lang == "ar" {
+		prayerNames = config.PrayerNamesArabic
 	}
 
 	// Parse prayer times
@@ -127,12 +102,23 @@ func runCountdownCommand(cmd *cobra.Command, args []string) error {
 		time  string
 		emoji string
 	}{
-		{"Fajr", cleanTime(timings.Fajr), "🌅"},
-		{"Sunrise", cleanTime(timings.Sunrise), "🌄"},
-		{"Dhuhr", cleanTime(timings.Dhuhr), "☀️"},
-		{"Asr", cleanTime(timings.Asr), "🌤️"},
-		{"Maghrib", cleanTime(timings.Maghrib), "🌆"},
-		{"Isha", cleanTime(timings.Isha), "🌙"},
+		{prayerNames[0], cleanTime(timings.Fajr), config.PrayerEmojis["Fajr"]},
+		{prayerNames[1], cleanTime(timings.Sunrise), config.PrayerEmojis["Sunrise"]},
+		{prayerNames[2], cleanTime(timings.Dhuhr), config.PrayerEmojis["Dhuhr"]},
+		{prayerNames[3], cleanTime(timings.Asr), config.PrayerEmojis["Asr"]},
+		{prayerNames[4], cleanTime(timings.Maghrib), config.PrayerEmojis["Maghrib"]},
+		{prayerNames[5], cleanTime(timings.Isha), config.PrayerEmojis["Isha"]},
+	}
+
+	// Hijri info
+	hijriFormat := GetHijriFormat()
+	var hijriStr string
+	if hijriFormat != "none" && hijriFormat != "" {
+		h := resp.Data.Date.Hijri
+		hijriStr = fmt.Sprintf("%s %s %s", h.Day, h.Month.En, h.Year)
+		if lang == "ar" {
+			hijriStr = fmt.Sprintf("%s %s %s", h.Day, h.Month.Ar, h.Year)
+		}
 	}
 
 	// Colors
@@ -165,7 +151,7 @@ func runCountdownCommand(cmd *cobra.Command, args []string) error {
 			return nil
 
 		case <-ticker.C:
-			now := time.Now().In(loc)
+			now := time.Now().In(tzLoc)
 
 			// Find next prayer
 			var nextPrayer *struct {
@@ -198,6 +184,9 @@ func runCountdownCommand(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			fmt.Printf("  %s %s\n", "⏱️", cyan("Prayer Time Countdown"))
 			fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			if hijriStr != "" {
+				fmt.Printf("  📅 %s\n", dim(hijriStr))
+			}
 			fmt.Println()
 
 			if nextPrayer == nil {
@@ -218,9 +207,13 @@ func runCountdownCommand(cmd *cobra.Command, args []string) error {
 
 			fmt.Println()
 			fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-			fmt.Printf("  %s %s\n", "📍", dim(locationStr))
+			fmt.Printf("  %s %s\n", "📍", dim(loc.DisplayName))
 			fmt.Printf("  %s %s\n", "⚙️", dim(config.GetMethodName(methodID)))
 			fmt.Printf("  %s %s\n", "🕐", dim(now.Format("15:04:05")))
+			if qibla != nil {
+				compass := prayer.GetCompassDirection(qibla.Direction)
+				fmt.Printf("  🧭 %s\n", dim(fmt.Sprintf("Qibla: %s (%.1f°)", compass, qibla.Direction)))
+			}
 			fmt.Println()
 			fmt.Printf("  %s\n", dim("Press Ctrl+C to exit"))
 		}

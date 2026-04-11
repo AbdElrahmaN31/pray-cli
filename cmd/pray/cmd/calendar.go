@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
+	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 	"github.com/AbdElrahmaN31/pray-cli/internal/calendar"
 	"github.com/AbdElrahmaN31/pray-cli/internal/config"
 	"github.com/AbdElrahmaN31/pray-cli/internal/ui"
@@ -172,8 +173,8 @@ func runCalendarSubscribe(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func buildCalendarParams(cfg *config.Config) *calendar.CalendarParams {
-	params := calendar.NewCalendarParams()
+func buildCalendarParams(cfg *config.Config) *api.CalendarParams {
+	params := api.NewCalendarParams()
 
 	// Location
 	if address != "" {

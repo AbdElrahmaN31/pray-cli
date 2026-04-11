@@ -45,9 +45,12 @@ var (
 	hijriFormat string
 
 	// Feature flags
-	travelerMode bool
-	jumuahMode   bool
-	ramadanMode  bool
+	travelerMode  bool
+	jumuahMode    bool
+	ramadanMode   bool
+	iqamaEnabled  bool
+	hijriHolidays bool
+	school        int
 
 	// Config management flags
 	saveConfig   bool
@@ -154,6 +157,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&travelerMode, "traveler", false, "enable travel/Qasr mode")
 	rootCmd.PersistentFlags().BoolVar(&jumuahMode, "jumuah", false, "add Jumu'ah (Friday) prayer")
 	rootCmd.PersistentFlags().BoolVar(&ramadanMode, "ramadan", false, "enable Ramadan mode")
+	rootCmd.PersistentFlags().BoolVar(&iqamaEnabled, "iqama", false, "show Iqama times (with configured offsets)")
+	rootCmd.PersistentFlags().BoolVar(&hijriHolidays, "hijri-holidays", false, "show Hijri holidays")
+	rootCmd.PersistentFlags().IntVar(&school, "school", 0, "juristic school: 0=Shafi (default), 1=Hanafi")
 
 	// Config management flags
 	rootCmd.PersistentFlags().BoolVar(&saveConfig, "save", false, "save current flags as default config")
@@ -275,6 +281,24 @@ func IsJumuahMode() bool {
 // IsRamadanMode returns whether Ramadan mode is enabled
 func IsRamadanMode() bool {
 	return ramadanMode || GetConfig().Ramadan.Enabled
+}
+
+// IsIqamaEnabled returns whether Iqama times should be shown
+func IsIqamaEnabled() bool {
+	return iqamaEnabled || GetConfig().Iqama.Enabled
+}
+
+// IsHijriHolidays returns whether Hijri holidays should be shown
+func IsHijriHolidays() bool {
+	return hijriHolidays || GetConfig().Features.HijriHolidays
+}
+
+// GetSchool returns the juristic school (0=Shafi, 1=Hanafi)
+func GetSchool() int {
+	if school != 0 {
+		return school
+	}
+	return 0 // Default Shafi
 }
 
 // ShouldSaveConfig returns whether to save flags to config
