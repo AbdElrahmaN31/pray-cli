@@ -55,7 +55,7 @@ func (d *Detector) DetectFromIP(ctx context.Context) (*Location, error) {
 	// Try primary service (ip-api.com)
 	loc, err := d.detectFromIPAPI(ctx)
 	if err == nil && loc.IsValid() {
-		loc.Source = "ip"
+		loc.Source = "auto"
 		loc.DetectedAt = time.Now()
 		return loc, nil
 	}
@@ -63,7 +63,7 @@ func (d *Detector) DetectFromIP(ctx context.Context) (*Location, error) {
 	// Try secondary service (ipinfo.io)
 	loc, err = d.detectFromIPInfo(ctx)
 	if err == nil && loc.IsValid() {
-		loc.Source = "ip"
+		loc.Source = "auto"
 		loc.DetectedAt = time.Now()
 		return loc, nil
 	}
@@ -71,7 +71,7 @@ func (d *Detector) DetectFromIP(ctx context.Context) (*Location, error) {
 	// Try tertiary service (ipapi.co)
 	loc, err = d.detectFromIPAPICo(ctx)
 	if err == nil && loc.IsValid() {
-		loc.Source = "ip"
+		loc.Source = "auto"
 		loc.DetectedAt = time.Now()
 		return loc, nil
 	}
