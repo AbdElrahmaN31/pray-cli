@@ -9,7 +9,7 @@ import (
 func TestNewDetector(t *testing.T) {
 	d := NewDetector()
 	if d == nil {
-		t.Error("NewDetector returned nil")
+		t.Fatal("NewDetector returned nil")
 	}
 	if d.timeout != DefaultDetectionTimeout {
 		t.Errorf("Expected timeout %v, got %v", DefaultDetectionTimeout, d.timeout)

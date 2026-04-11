@@ -54,7 +54,7 @@ prayer times based on specific astronomical angles.`,
 		cyan := color.New(color.FgCyan).SprintFunc()
 
 		for _, m := range methods {
-			table.Append(cyan(fmt.Sprintf("%d", m.ID)), m.Name, m.Description)
+			_ = table.Append(cyan(fmt.Sprintf("%d", m.ID)), m.Name, m.Description)
 		}
 
 		table.Render()

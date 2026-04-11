@@ -14,7 +14,7 @@ import (
 func TestNewClient(t *testing.T) {
 	client := NewClient()
 	if client == nil {
-		t.Error("NewClient returned nil")
+		t.Fatal("NewClient returned nil")
 	}
 	if client.baseURL != DefaultBaseURL {
 		t.Errorf("Expected baseURL %s, got %s", DefaultBaseURL, client.baseURL)
