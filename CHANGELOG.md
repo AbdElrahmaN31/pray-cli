@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-11
+
+### Added
+
+- Daily Du'a with real Arabic text, transliteration, translation, and reference — shown in all output formats (table, pretty, JSON, Slack, Discord)
+- Iqama time offsets displayed as an extra column in table and pretty output
+- Hijri holiday banners in table and pretty output
+- Calculation methods 14–23: Moonsighting Committee, Dubai, JAKIM, Tunisia, Algeria, KEMENAG, Morocco, Comunidade Islamica de Lisboa, MUIS/Jordan, Custom
+- CI workflow: multi-version Go matrix (1.23/1.24), lint, and cross-platform build jobs
+- Conventional Commits linter for pull requests
+- Branch protection setup script (`scripts/setup-branch-protection.sh`)
+- `config set` support for all new keys: `city`, `country`, `timezone`, `output.color_enabled`, `output.no_emoji`, `features.hijri_holidays`, `features.traveler_mode`, `calendar.*`, `jumuah.*`, `ramadan.*`, `iqama.*`, `cache_enabled`, `update_check`, `api_timeout`
+- Cosign keyless signing of release checksums
+
+### Changed
+
+- Default API switched to AlAdhan (api.aladhan.com/v1) — more reliable globally
+- IP-detected location source label changed from `"ip"` to `"auto"`; legacy config values migrated on load
+- Update checker now uses `golang.org/x/mod/semver` for correct pre-release ordering and detects Homebrew/Scoop/Go install paths to show the right upgrade command
+- Setting `address` via `config set` now clears coordinates, and vice-versa
+
+### Fixed
+
+- ICS calendar URL parameters: `ramadan` → `ramadanMode`, `taraweehDuration` → `traweehDuration`
+
 ## [1.0.7] - 2026-02-13
 
 ### Added
@@ -81,7 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial project scaffolding
 
-[Unreleased]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.4...v1.0.5
