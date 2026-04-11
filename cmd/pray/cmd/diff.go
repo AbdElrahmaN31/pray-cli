@@ -39,13 +39,13 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 	location2 := args[1]
 
 	cfg := GetConfig()
-	methodID := cfg.Method
-	if method != 0 {
-		methodID = method
-	}
+	methodID := resolveMethod()
 
-	// Create API client
-	client := api.NewClient(api.WithTimeout(time.Duration(cfg.APITimeout) * time.Second))
+	// Create API client with caching
+	client, err := createAPIClient()
+	if err != nil {
+		return err
+	}
 
 	// Fetch prayer times for both locations in parallel
 	type result struct {
@@ -93,6 +93,13 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 	resp1 := r1.resp
 	resp2 := r2.resp
 
+	// Determine language
+	lang := GetLanguage()
+	prayerNames := config.PrayerNames
+	if lang == "ar" {
+		prayerNames = config.PrayerNamesArabic
+	}
+
 	// Colors
 	cyan := color.New(color.FgCyan).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
@@ -103,30 +110,56 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 		color.NoColor = true
 	}
 
+	// Determine output writer
+	var w *os.File
+	outFile := GetOutputFile()
+	if outFile != "" {
+		f, err := os.Create(outFile)
+		if err != nil {
+			return fmt.Errorf("failed to create output file: %w", err)
+		}
+		defer f.Close()
+		w = f
+	} else {
+		w = os.Stdout
+	}
+
 	// Header
-	fmt.Println()
-	fmt.Printf("📊 %s\n", cyan("Prayer Times Comparison"))
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("📅 %s\n", resp1.Data.Date.Readable)
-	fmt.Println()
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "📊 %s\n", cyan("Prayer Times Comparison"))
+	fmt.Fprintln(w, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Fprintf(w, "📅 %s\n", resp1.Data.Date.Readable)
+
+	// Hijri info
+	hijriFormat := GetHijriFormat()
+	if hijriFormat != "none" && hijriFormat != "" {
+		h := resp1.Data.Date.Hijri
+		hijriStr := fmt.Sprintf("%s %s %s", h.Day, h.Month.En, h.Year)
+		if lang == "ar" {
+			hijriStr = fmt.Sprintf("%s %s %s", h.Day, h.Month.Ar, h.Year)
+		}
+		fmt.Fprintf(w, "🌙 %s\n", hijriStr)
+	}
+
+	fmt.Fprintln(w)
 
 	// Create comparison table
-	table := tablewriter.NewTable(os.Stdout)
+	table := tablewriter.NewTable(w)
 	table.Header("Prayer", location1, location2, "Difference")
 
-	// Prayer times to compare
+	// Prayer times to compare (7 prayers including Midnight)
 	prayers := []struct {
 		name  string
 		time1 string
 		time2 string
 	}{
-		{"Fajr", cleanTime(resp1.Data.Timings.Fajr), cleanTime(resp2.Data.Timings.Fajr)},
-		{"Sunrise", cleanTime(resp1.Data.Timings.Sunrise), cleanTime(resp2.Data.Timings.Sunrise)},
-		{"Dhuhr", cleanTime(resp1.Data.Timings.Dhuhr), cleanTime(resp2.Data.Timings.Dhuhr)},
-		{"Asr", cleanTime(resp1.Data.Timings.Asr), cleanTime(resp2.Data.Timings.Asr)},
-		{"Maghrib", cleanTime(resp1.Data.Timings.Maghrib), cleanTime(resp2.Data.Timings.Maghrib)},
-		{"Isha", cleanTime(resp1.Data.Timings.Isha), cleanTime(resp2.Data.Timings.Isha)},
-		{"Midnight", cleanTime(resp1.Data.Timings.Midnight), cleanTime(resp2.Data.Timings.Midnight)},
+		{prayerNames[0], cleanTime(resp1.Data.Timings.Fajr), cleanTime(resp2.Data.Timings.Fajr)},
+		{prayerNames[1], cleanTime(resp1.Data.Timings.Sunrise), cleanTime(resp2.Data.Timings.Sunrise)},
+		{prayerNames[2], cleanTime(resp1.Data.Timings.Dhuhr), cleanTime(resp2.Data.Timings.Dhuhr)},
+		{prayerNames[3], cleanTime(resp1.Data.Timings.Asr), cleanTime(resp2.Data.Timings.Asr)},
+		{prayerNames[4], cleanTime(resp1.Data.Timings.Maghrib), cleanTime(resp2.Data.Timings.Maghrib)},
+		{prayerNames[5], cleanTime(resp1.Data.Timings.Isha), cleanTime(resp2.Data.Timings.Isha)},
+		{prayerNames[6], cleanTime(resp1.Data.Timings.Midnight), cleanTime(resp2.Data.Timings.Midnight)},
 	}
 
 	for _, p := range prayers {
@@ -148,11 +181,15 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 
 	table.Render()
 
-	fmt.Println()
-	fmt.Printf("⚙️  Method: %s\n", config.GetMethodName(methodID))
-	fmt.Println()
-	fmt.Println("Note: Positive difference means location 2 is later")
-	fmt.Println()
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "⚙️  Method: %s\n", config.GetMethodName(methodID))
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Note: Positive difference means location 2 is later")
+	fmt.Fprintln(w)
+
+	if outFile != "" && !IsQuiet() {
+		fmt.Printf("✓ Output saved to: %s\n", outFile)
+	}
 
 	return nil
 }

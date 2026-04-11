@@ -187,14 +187,38 @@ var configSetCmd = &cobra.Command{
 	Long: `Set a configuration value.
 
 Available keys:
-  address         - City or address (e.g., "Cairo, Egypt")
-  latitude        - Latitude in decimal degrees
-  longitude       - Longitude in decimal degrees
-  method          - Calculation method ID (0-23)
-  language        - Language: en or ar
-  output.format   - Output format: table/pretty/json/slack/discord
-  features.qibla  - Include Qibla direction: true/false
-  features.hijri  - Hijri date display: title/desc/both/none`,
+  address                - City or address (e.g., "Cairo, Egypt")
+  latitude               - Latitude in decimal degrees
+  longitude              - Longitude in decimal degrees
+  city                   - City name (e.g., "Cairo")
+  country                - Country name (e.g., "Egypt")
+  timezone               - Timezone (e.g., "Africa/Cairo")
+  method                 - Calculation method ID (0-23)
+  language               - Language: en or ar
+  output.format          - Output format: table/pretty/json/slack/discord/webhook
+  output.color_enabled   - Enable colored output: true/false
+  output.no_emoji        - Disable emojis: true/false
+  features.qibla         - Include Qibla direction: true/false
+  features.dua           - Include daily Du'a: true/false
+  features.hijri         - Hijri date display: title/desc/both/none
+  features.hijri_holidays - Include Islamic holidays: true/false
+  features.traveler_mode - Enable travel/Qasr mode: true/false
+  calendar.duration      - Event duration in minutes (1-120)
+  calendar.months        - Months to generate (1-12)
+  calendar.alarm         - Alarm offsets, e.g., "5,10,15"
+  calendar.events        - Events to include: "all" or "0,2,4"
+  calendar.color         - Calendar color (hex or name)
+  jumuah.enabled         - Enable Jumu'ah events: true/false
+  jumuah.duration        - Jumu'ah duration in minutes
+  ramadan.enabled        - Enable Ramadan mode: true/false
+  ramadan.iftar_duration - Iftar event duration in minutes
+  ramadan.taraweeh_duration - Taraweeh duration in minutes
+  ramadan.suhoor_duration - Suhoor duration in minutes
+  iqama.enabled          - Enable Iqama times: true/false
+  iqama.offsets           - Iqama offsets, e.g., "15,0,10,10,5,10,0"
+  cache_enabled          - Enable caching: true/false
+  update_check           - Enable update checks: true/false
+  api_timeout            - API timeout in seconds (5-120)`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
@@ -204,66 +228,159 @@ Available keys:
 		green := color.New(color.FgGreen).SprintFunc()
 
 		switch key {
+		// Location
 		case "address":
 			cfg.Location.Address = value
+			cfg.Location.Latitude = 0
+			cfg.Location.Longitude = 0
+			cfg.Location.City = ""
+			cfg.Location.Country = ""
+			cfg.Location.CountryCode = ""
+			cfg.Location.Timezone = ""
+			cfg.Location.Source = "manual"
 		case "latitude":
 			var lat float64
 			if _, err := fmt.Sscanf(value, "%f", &lat); err != nil {
 				return fmt.Errorf("invalid latitude: %s", value)
 			}
 			cfg.Location.Latitude = lat
+			cfg.Location.Address = ""
+			cfg.Location.Source = "manual"
 		case "longitude":
 			var lon float64
 			if _, err := fmt.Sscanf(value, "%f", &lon); err != nil {
 				return fmt.Errorf("invalid longitude: %s", value)
 			}
 			cfg.Location.Longitude = lon
+			cfg.Location.Address = ""
+			cfg.Location.Source = "manual"
+		case "city":
+			cfg.Location.City = value
+			cfg.Location.Address = ""
+			cfg.Location.Source = "manual"
+		case "country":
+			cfg.Location.Country = value
+			cfg.Location.Address = ""
+			cfg.Location.Source = "manual"
+		case "timezone":
+			cfg.Location.Timezone = value
+
+		// Calculation
 		case "method":
-			var method int
-			if _, err := fmt.Sscanf(value, "%d", &method); err != nil {
+			var m int
+			if _, err := fmt.Sscanf(value, "%d", &m); err != nil {
 				return fmt.Errorf("invalid method: %s", value)
 			}
-			if method < 0 || method > 23 {
+			if m < 0 || m > 23 {
 				return fmt.Errorf("method must be between 0 and 23")
 			}
-			cfg.Method = method
+			cfg.Method = m
 		case "language":
 			if value != "en" && value != "ar" {
 				return fmt.Errorf("language must be 'en' or 'ar'")
 			}
 			cfg.Language = value
+
+		// Output
 		case "output.format":
 			valid := []string{"table", "pretty", "json", "slack", "discord", "webhook"}
-			isValid := false
-			for _, v := range valid {
-				if value == v {
-					isValid = true
-					break
-				}
-			}
-			if !isValid {
+			if !isOneOf(value, valid) {
 				return fmt.Errorf("invalid output format: %s", value)
 			}
 			cfg.Output.Format = value
+		case "output.color_enabled":
+			cfg.Output.ColorEnabled = value == "true"
+		case "output.no_emoji":
+			cfg.Output.NoEmoji = value == "true"
+
+		// Features
 		case "features.qibla":
 			cfg.Features.Qibla = value == "true"
 		case "features.dua":
 			cfg.Features.Dua = value == "true"
 		case "features.hijri":
 			valid := []string{"title", "desc", "both", "none"}
-			isValid := false
-			for _, v := range valid {
-				if value == v {
-					isValid = true
-					break
-				}
-			}
-			if !isValid {
-				return fmt.Errorf("invalid hijri option: %s", value)
+			if !isOneOf(value, valid) {
+				return fmt.Errorf("invalid hijri option: %s (must be title/desc/both/none)", value)
 			}
 			cfg.Features.Hijri = value
+		case "features.hijri_holidays":
+			cfg.Features.HijriHolidays = value == "true"
+		case "features.traveler_mode":
+			cfg.Features.TravelerMode = value == "true"
+
+		// Calendar
+		case "calendar.duration":
+			var d int
+			if _, err := fmt.Sscanf(value, "%d", &d); err != nil || d < 1 || d > 120 {
+				return fmt.Errorf("calendar.duration must be between 1 and 120")
+			}
+			cfg.Calendar.Duration = d
+		case "calendar.months":
+			var m int
+			if _, err := fmt.Sscanf(value, "%d", &m); err != nil || m < 1 || m > 12 {
+				return fmt.Errorf("calendar.months must be between 1 and 12")
+			}
+			cfg.Calendar.Months = m
+		case "calendar.alarm":
+			cfg.Calendar.Alarm = value
+		case "calendar.events":
+			cfg.Calendar.Events = value
+		case "calendar.color":
+			cfg.Calendar.Color = value
+
+		// Jumu'ah
+		case "jumuah.enabled":
+			cfg.Jumuah.Enabled = value == "true"
+		case "jumuah.duration":
+			var d int
+			if _, err := fmt.Sscanf(value, "%d", &d); err != nil || d < 1 {
+				return fmt.Errorf("invalid jumuah.duration: %s", value)
+			}
+			cfg.Jumuah.Duration = d
+
+		// Ramadan
+		case "ramadan.enabled":
+			cfg.Ramadan.Enabled = value == "true"
+		case "ramadan.iftar_duration":
+			var d int
+			if _, err := fmt.Sscanf(value, "%d", &d); err != nil || d < 1 {
+				return fmt.Errorf("invalid ramadan.iftar_duration: %s", value)
+			}
+			cfg.Ramadan.IftarDuration = d
+		case "ramadan.taraweeh_duration":
+			var d int
+			if _, err := fmt.Sscanf(value, "%d", &d); err != nil || d < 1 {
+				return fmt.Errorf("invalid ramadan.taraweeh_duration: %s", value)
+			}
+			cfg.Ramadan.TaraweehDuration = d
+		case "ramadan.suhoor_duration":
+			var d int
+			if _, err := fmt.Sscanf(value, "%d", &d); err != nil || d < 1 {
+				return fmt.Errorf("invalid ramadan.suhoor_duration: %s", value)
+			}
+			cfg.Ramadan.SuhoorDuration = d
+
+		// Iqama
+		case "iqama.enabled":
+			cfg.Iqama.Enabled = value == "true"
+		case "iqama.offsets":
+			cfg.Iqama.Offsets = value
+
+		// Advanced
+		case "cache_enabled":
+			cfg.CacheEnabled = value == "true"
+		case "update_check":
+			cfg.UpdateCheck = value == "true"
+		case "api_timeout":
+			var t int
+			if _, err := fmt.Sscanf(value, "%d", &t); err != nil || t < 5 || t > 120 {
+				return fmt.Errorf("api_timeout must be between 5 and 120")
+			}
+			cfg.APITimeout = t
+
 		default:
-			return fmt.Errorf("unknown config key: %s", key)
+			return fmt.Errorf("unknown config key: %s\nRun 'pray config set --help' to see available keys", key)
 		}
 
 		if err := cfg.Save(); err != nil {
@@ -273,6 +390,16 @@ Available keys:
 		fmt.Printf("%s Set %s = %s\n", green("✓"), key, value)
 		return nil
 	},
+}
+
+// isOneOf checks if value is in the list of valid options
+func isOneOf(value string, valid []string) bool {
+	for _, v := range valid {
+		if value == v {
+			return true
+		}
+	}
+	return false
 }
 
 var configGetCmd = &cobra.Command{
@@ -286,28 +413,94 @@ var configGetCmd = &cobra.Command{
 		var value interface{}
 
 		switch key {
+		// Location
 		case "address":
 			value = cfg.Location.Address
 		case "latitude":
 			value = cfg.Location.Latitude
 		case "longitude":
 			value = cfg.Location.Longitude
+		case "city":
+			value = cfg.Location.City
+		case "country":
+			value = cfg.Location.Country
+		case "country_code":
+			value = cfg.Location.CountryCode
+		case "timezone":
+			value = cfg.Location.Timezone
+		case "source":
+			value = cfg.Location.Source
+
+		// Calculation
 		case "method":
 			value = cfg.Method
 		case "language":
 			value = cfg.Language
+
+		// Output
 		case "output.format":
 			value = cfg.Output.Format
+		case "output.color_enabled":
+			value = cfg.Output.ColorEnabled
+		case "output.no_emoji":
+			value = cfg.Output.NoEmoji
+
+		// Features
 		case "features.qibla":
 			value = cfg.Features.Qibla
 		case "features.dua":
 			value = cfg.Features.Dua
 		case "features.hijri":
 			value = cfg.Features.Hijri
-		case "timezone":
-			value = cfg.Location.Timezone
+		case "features.hijri_holidays":
+			value = cfg.Features.HijriHolidays
+		case "features.traveler_mode":
+			value = cfg.Features.TravelerMode
+
+		// Calendar
+		case "calendar.duration":
+			value = cfg.Calendar.Duration
+		case "calendar.months":
+			value = cfg.Calendar.Months
+		case "calendar.alarm":
+			value = cfg.Calendar.Alarm
+		case "calendar.events":
+			value = cfg.Calendar.Events
+		case "calendar.color":
+			value = cfg.Calendar.Color
+
+		// Jumu'ah
+		case "jumuah.enabled":
+			value = cfg.Jumuah.Enabled
+		case "jumuah.duration":
+			value = cfg.Jumuah.Duration
+
+		// Ramadan
+		case "ramadan.enabled":
+			value = cfg.Ramadan.Enabled
+		case "ramadan.iftar_duration":
+			value = cfg.Ramadan.IftarDuration
+		case "ramadan.taraweeh_duration":
+			value = cfg.Ramadan.TaraweehDuration
+		case "ramadan.suhoor_duration":
+			value = cfg.Ramadan.SuhoorDuration
+
+		// Iqama
+		case "iqama.enabled":
+			value = cfg.Iqama.Enabled
+		case "iqama.offsets":
+			value = cfg.Iqama.Offsets
+
+		// Advanced
+		case "cache_enabled":
+			value = cfg.CacheEnabled
+		case "update_check":
+			value = cfg.UpdateCheck
+		case "api_timeout":
+			value = cfg.APITimeout
+
 		default:
-			return fmt.Errorf("unknown config key: %s", key)
+			return fmt.Errorf("unknown config key: %s\nRun 'pray config set --help' to see available keys", key)
 		}
 
 		fmt.Println(value)
