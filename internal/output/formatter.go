@@ -14,17 +14,20 @@ type Formatter interface {
 
 // PrayerData contains all the data needed for formatting
 type PrayerData struct {
-	Response    *api.PrayerTimesResponse
-	Location    string
-	Method      string
-	NextPrayer  *api.NextPrayer
-	Qibla       *api.QiblaData
-	ShowQibla   bool
-	ShowDua     bool
-	ShowHijri   bool
-	HijriFormat string // "title", "desc", "both", "none"
-	Language    string
-	NoColor     bool
+	Response      *api.PrayerTimesResponse
+	Location      string
+	Method        string
+	NextPrayer    *api.NextPrayer
+	Qibla         *api.QiblaData
+	ShowQibla     bool
+	ShowDua       bool
+	ShowHijri     bool
+	HijriFormat   string // "title", "desc", "both", "none"
+	Language      string
+	NoColor       bool
+	IqamaEnabled  bool
+	IqamaOffsets  string // Comma-separated offsets for each prayer
+	HijriHolidays bool
 }
 
 // GetFormatter returns the appropriate formatter for the given format

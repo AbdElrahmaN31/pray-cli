@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 // JSONFormatter formats output as JSON
@@ -13,12 +15,14 @@ type JSONFormatter struct{}
 
 // JSONOutput represents the JSON output structure
 type JSONOutput struct {
-	Date       DateOutput        `json:"date"`
-	Location   LocationOutput    `json:"location"`
-	Method     MethodOutput      `json:"method"`
-	Timings    TimingsOutput     `json:"timings"`
-	NextPrayer *NextPrayerOutput `json:"nextPrayer,omitempty"`
-	Qibla      *QiblaOutput      `json:"qibla,omitempty"`
+	Date          DateOutput        `json:"date"`
+	Location      LocationOutput    `json:"location"`
+	Method        MethodOutput      `json:"method"`
+	Timings       TimingsOutput     `json:"timings"`
+	NextPrayer    *NextPrayerOutput `json:"nextPrayer,omitempty"`
+	Qibla         *QiblaOutput      `json:"qibla,omitempty"`
+	Dua           *DuaOutput        `json:"dua,omitempty"`
+	HijriHolidays []string          `json:"hijriHolidays,omitempty"`
 }
 
 // DateOutput represents date information in JSON
@@ -79,6 +83,14 @@ type QiblaOutput struct {
 	Compass   string  `json:"compass"`
 }
 
+// DuaOutput represents a du'a in JSON output
+type DuaOutput struct {
+	Arabic          string `json:"arabic"`
+	Transliteration string `json:"transliteration"`
+	Translation     string `json:"translation"`
+	Reference       string `json:"reference"`
+}
+
 // Format writes the prayer times as JSON
 func (f *JSONFormatter) Format(w io.Writer, data *PrayerData) error {
 	if data.Response == nil {
@@ -129,6 +141,11 @@ func (f *JSONFormatter) Format(w io.Writer, data *PrayerData) error {
 		}
 	}
 
+	// Add Hijri holidays if enabled
+	if data.HijriHolidays && len(date.Hijri.Holidays) > 0 {
+		output.HijriHolidays = date.Hijri.Holidays
+	}
+
 	// Calculate next prayer
 	now := time.Now()
 	tz := meta.Timezone
@@ -173,6 +190,19 @@ func (f *JSONFormatter) Format(w io.Writer, data *PrayerData) error {
 		output.Qibla = &QiblaOutput{
 			Direction: data.Qibla.Direction,
 			Compass:   getCompassDirection(data.Qibla.Direction),
+		}
+	}
+
+	// Add Du'a if enabled
+	if data.ShowDua {
+		dua := prayer.GetDailyDua(time.Now())
+		if dua != nil {
+			output.Dua = &DuaOutput{
+				Arabic:          dua.Arabic,
+				Transliteration: dua.Transliteration,
+				Translation:     dua.Translation,
+				Reference:       dua.Reference,
+			}
 		}
 	}
 
