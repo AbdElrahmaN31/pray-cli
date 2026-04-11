@@ -176,10 +176,6 @@ func (f *WebhookFormatter) Format(w io.Writer, data *PrayerData) error {
 			now = time.Now().In(loc)
 		}
 	}
-	if loc == nil {
-		loc = time.Local
-	}
-
 	output := WebhookOutput{
 		Date: DateOutput{
 			Gregorian: date.Readable,
