@@ -125,6 +125,86 @@ var Methods = map[int]MethodDetails{
 		IshaAngle:   15.0,
 		Region:      "Russia",
 	},
+	14: {
+		ID:          14,
+		Name:        "Moonsighting Committee Worldwide",
+		Description: "Moonsighting Committee Worldwide",
+		FajrAngle:   18.0,
+		IshaAngle:   18.0,
+		Region:      "Worldwide",
+	},
+	15: {
+		ID:          15,
+		Name:        "Dubai",
+		Description: "Dubai (experimental)",
+		FajrAngle:   18.2,
+		IshaAngle:   18.2,
+		Region:      "United Arab Emirates",
+	},
+	16: {
+		ID:          16,
+		Name:        "JAKIM",
+		Description: "Jabatan Kemajuan Islam Malaysia (JAKIM)",
+		FajrAngle:   20.0,
+		IshaAngle:   18.0,
+		Region:      "Malaysia",
+	},
+	17: {
+		ID:          17,
+		Name:        "Tunisia",
+		Description: "Ministry of Religious Affairs, Tunisia",
+		FajrAngle:   18.0,
+		IshaAngle:   18.0,
+		Region:      "Tunisia",
+	},
+	18: {
+		ID:          18,
+		Name:        "Algeria",
+		Description: "Ministry of Religious Affairs and Wakfs, Algeria",
+		FajrAngle:   18.0,
+		IshaAngle:   17.0,
+		Region:      "Algeria",
+	},
+	19: {
+		ID:          19,
+		Name:        "KEMENAG",
+		Description: "Kementerian Agama Republik Indonesia",
+		FajrAngle:   20.0,
+		IshaAngle:   18.0,
+		Region:      "Indonesia",
+	},
+	20: {
+		ID:          20,
+		Name:        "Morocco",
+		Description: "Ministry of Habous and Islamic Affairs, Morocco",
+		FajrAngle:   19.0,
+		IshaAngle:   17.0,
+		Region:      "Morocco",
+	},
+	21: {
+		ID:          21,
+		Name:        "Comunidade Islamica de Lisboa",
+		Description: "Comunidade Islamica de Lisboa, Portugal",
+		FajrAngle:   18.0,
+		IshaAngle:   17.0,
+		Region:      "Portugal",
+	},
+	22: {
+		ID:          22,
+		Name:        "MUIS",
+		Description: "Ministry of Religious Affairs of Jordan",
+		FajrAngle:   18.5,
+		IshaAngle:   18.0,
+		Region:      "Jordan",
+	},
+	23: {
+		ID:          23,
+		Name:        "Custom",
+		Description: "Custom setting",
+		FajrAngle:   0,
+		IshaAngle:   0,
+		Region:      "Custom",
+	},
 }
 
 // GetMethod returns the method details for a given ID
@@ -138,7 +218,7 @@ func GetMethod(id int) *MethodDetails {
 // GetAllMethods returns all available methods
 func GetAllMethods() []MethodDetails {
 	methods := make([]MethodDetails, 0, len(Methods))
-	for i := 0; i <= 13; i++ {
+	for i := 0; i <= 23; i++ {
 		if method, ok := Methods[i]; ok {
 			methods = append(methods, method)
 		}
