@@ -2,6 +2,11 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -9,10 +14,10 @@ import (
 func TestNewClient(t *testing.T) {
 	client := NewClient()
 	if client == nil {
-		t.Error("NewClient returned nil")
+		t.Fatal("NewClient returned nil")
 	}
-	if client.baseURL != AlAdhanBaseURL {
-		t.Errorf("Expected baseURL %s, got %s", AlAdhanBaseURL, client.baseURL)
+	if client.baseURL != DefaultBaseURL {
+		t.Errorf("Expected baseURL %s, got %s", DefaultBaseURL, client.baseURL)
 	}
 	if client.timeout != DefaultTimeout {
 		t.Errorf("Expected timeout %v, got %v", DefaultTimeout, client.timeout)
@@ -239,6 +244,191 @@ func TestBuildICSURL(t *testing.T) {
 	for _, part := range expectedParts {
 		if !containsString(url, part) {
 			t.Errorf("URL missing expected part: %s", part)
+		}
+	}
+}
+
+func TestGetPrayerTimes_Success(t *testing.T) {
+	mockResp := `{"code":200,"status":"OK","data":{"timings":{"Fajr":"05:15","Sunrise":"06:30","Dhuhr":"12:00","Asr":"15:30","Sunset":"17:45","Maghrib":"17:45","Isha":"19:00","Imsak":"05:05","Midnight":"23:30","Firstthird":"21:00","Lastthird":"01:00"},"date":{"readable":"15 Mar 2026","timestamp":"1773792000","gregorian":{"date":"15-03-2026","format":"DD-MM-YYYY","day":"15","weekday":{"en":"Sunday"},"month":{"number":3,"en":"March"},"year":"2026","designation":{"abbreviated":"AD","expanded":"Anno Domini"}},"hijri":{"date":"15-08-1447","format":"DD-MM-YYYY","day":"15","weekday":{"en":"Al Ahad","ar":"الاحد"},"month":{"number":8,"en":"Sha'ban","ar":"شعبان"},"year":"1447","designation":{"abbreviated":"AH","expanded":"Anno Hegirae"},"holidays":[]}},"meta":{"latitude":30.0444,"longitude":31.2357,"timezone":"Africa/Cairo","method":{"id":5,"name":"Egyptian General Authority of Survey","params":{"Fajr":19.5,"Isha":17.5}},"latitudeAdjustmentMethod":"ANGLE_BASED","midnightMode":"STANDARD","school":"STANDARD","offset":{"Imsak":0,"Fajr":0,"Sunrise":0,"Dhuhr":0,"Asr":0,"Maghrib":0,"Sunset":0,"Isha":0,"Midnight":0}}}}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, mockResp)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(0))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	resp, err := client.GetPrayerTimes(context.Background(), params)
+	if err != nil {
+		t.Fatalf("GetPrayerTimes() error = %v", err)
+	}
+	if resp.Code != 200 {
+		t.Errorf("expected code 200, got %d", resp.Code)
+	}
+	if resp.Data.Timings.Fajr != "05:15" {
+		t.Errorf("expected Fajr 05:15, got %s", resp.Data.Timings.Fajr)
+	}
+}
+
+func TestGetPrayerTimes_HTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "internal error")
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(0))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	_, err := client.GetPrayerTimes(context.Background(), params)
+	if err == nil {
+		t.Fatal("expected error for HTTP 500")
+	}
+	if !strings.Contains(err.Error(), "500") {
+		t.Errorf("error should mention status 500: %v", err)
+	}
+}
+
+func TestGetPrayerTimes_APIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"code":400,"status":"Bad Request","data":{}}`)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(0))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	_, err := client.GetPrayerTimes(context.Background(), params)
+	if err == nil {
+		t.Fatal("expected error for API code 400")
+	}
+	if !strings.Contains(err.Error(), "API error") {
+		t.Errorf("error should mention API error: %v", err)
+	}
+}
+
+func TestRetry_EventualSuccess(t *testing.T) {
+	var attempts int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&attempts, 1)
+		if n < 3 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"code":200,"status":"OK","data":{"timings":{"Fajr":"05:15","Sunrise":"06:30","Dhuhr":"12:00","Asr":"15:30","Sunset":"17:45","Maghrib":"17:45","Isha":"19:00","Imsak":"05:05","Midnight":"23:30","Firstthird":"21:00","Lastthird":"01:00"},"date":{"readable":"15 Mar 2026","timestamp":"1773792000","gregorian":{"date":"15-03-2026","format":"DD-MM-YYYY","day":"15","weekday":{"en":"Sunday"},"month":{"number":3,"en":"March"},"year":"2026","designation":{"abbreviated":"AD","expanded":"Anno Domini"}},"hijri":{"date":"15-08-1447","format":"DD-MM-YYYY","day":"15","weekday":{"en":"Al Ahad","ar":"الاحد"},"month":{"number":8,"en":"Sha'ban","ar":"شعبان"},"year":"1447","designation":{"abbreviated":"AH","expanded":"Anno Hegirae"},"holidays":[]}},"meta":{"latitude":30.0444,"longitude":31.2357,"timezone":"Africa/Cairo","method":{"id":5,"name":"Egyptian","params":{"Fajr":19.5,"Isha":17.5}},"latitudeAdjustmentMethod":"ANGLE_BASED","midnightMode":"STANDARD","school":"STANDARD","offset":{"Imsak":0,"Fajr":0,"Sunrise":0,"Dhuhr":0,"Asr":0,"Maghrib":0,"Sunset":0,"Isha":0,"Midnight":0}}}}`)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(3))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	resp, err := client.GetPrayerTimes(context.Background(), params)
+	if err != nil {
+		t.Fatalf("expected success after retries, got error: %v", err)
+	}
+	if resp.Code != 200 {
+		t.Errorf("expected code 200, got %d", resp.Code)
+	}
+	if atomic.LoadInt32(&attempts) < 3 {
+		t.Errorf("expected at least 3 attempts, got %d", attempts)
+	}
+}
+
+func TestRetry_AllFail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(2))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	_, err := client.GetPrayerTimes(context.Background(), params)
+	if err == nil {
+		t.Fatal("expected error after all retries fail")
+	}
+	if !strings.Contains(err.Error(), "attempts") {
+		t.Errorf("error should mention attempts: %v", err)
+	}
+}
+
+func TestRetry_ContextCancel(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(3), WithTimeout(5*time.Second))
+	params := NewPrayerTimesParams().WithCoordinates(30.0444, 31.2357).WithMethod(5)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	_, err := client.GetPrayerTimes(ctx, params)
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+}
+
+func TestGetQibla_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"code":200,"status":"OK","data":{"latitude":30.0444,"longitude":31.2357,"direction":136.17}}`)
+	}))
+	defer server.Close()
+
+	client := NewClient(WithBaseURL(server.URL), WithMaxRetries(0))
+	resp, err := client.GetQibla(context.Background(), 30.0444, 31.2357)
+	if err != nil {
+		t.Fatalf("GetQibla() error = %v", err)
+	}
+	if resp.Code != 200 {
+		t.Errorf("expected code 200, got %d", resp.Code)
+	}
+	if resp.Data.Direction < 136 || resp.Data.Direction > 137 {
+		t.Errorf("expected direction ~136.17, got %f", resp.Data.Direction)
+	}
+}
+
+func TestBuildICSURL_RamadanParams(t *testing.T) {
+	params := &CalendarParams{
+		Address:          "Cairo, Egypt",
+		Method:           5,
+		Duration:         25,
+		Months:           3,
+		Ramadan:          true,
+		IftarDuration:    30,
+		TaraweehDuration: 60,
+		SuhoorDuration:   30,
+	}
+
+	url := BuildICSURL(params)
+
+	// Verify correct parameter names per PrayCalendar API
+	expectedParts := []string{
+		"ramadanMode=true",
+		"traweehDuration=60",
+		"iftarDuration=30",
+		"suhoorDuration=30",
+	}
+	notExpected := []string{
+		"ramadan=true",
+		"taraweehDuration=",
+	}
+
+	for _, part := range expectedParts {
+		if !containsString(url, part) {
+			t.Errorf("URL missing expected param: %s\nURL: %s", part, url)
+		}
+	}
+	for _, part := range notExpected {
+		if containsString(url, part) {
+			t.Errorf("URL should NOT contain old param: %s\nURL: %s", part, url)
 		}
 	}
 }

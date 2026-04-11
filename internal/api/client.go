@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	// DefaultBaseURL is the base URL for the prayer times API
-	DefaultBaseURL = "https://pray.ahmedelywa.com"
+	// DefaultBaseURL is the base URL for the AlAdhan prayer times API
+	DefaultBaseURL = "https://api.aladhan.com/v1"
 
-	// AlAdhanBaseURL is the alternative API (aladhan.com)
-	AlAdhanBaseURL = "https://api.aladhan.com/v1"
+	// ICSBaseURL is the base URL for ICS calendar generation (PrayCalendar API)
+	ICSBaseURL = "https://pray.ahmedelywa.com"
 
 	// DefaultTimeout is the default HTTP timeout
 	DefaultTimeout = 30 * time.Second
@@ -75,7 +75,7 @@ func NewClient(opts ...ClientOption) *Client {
 		httpClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
-		baseURL:    AlAdhanBaseURL, // Using AlAdhan API as it's more reliable
+		baseURL:    DefaultBaseURL, // AlAdhan API
 		timeout:    DefaultTimeout,
 		maxRetries: DefaultMaxRetries,
 		userAgent:  UserAgent,
@@ -260,7 +260,7 @@ func (c *Client) DownloadICS(ctx context.Context, icsURL string) ([]byte, error)
 
 // BuildICSURL builds a URL for the ICS calendar endpoint
 func BuildICSURL(params *CalendarParams) string {
-	baseURL := DefaultBaseURL
+	baseURL := ICSBaseURL
 	query := url.Values{}
 
 	// Location
@@ -328,13 +328,13 @@ func BuildICSURL(params *CalendarParams) string {
 		query.Set("traveler", "true")
 	}
 	if params.Ramadan {
-		query.Set("ramadan", "true")
+		query.Set("ramadanMode", "true")
 	}
 	if params.IftarDuration > 0 {
 		query.Set("iftarDuration", fmt.Sprintf("%d", params.IftarDuration))
 	}
 	if params.TaraweehDuration > 0 {
-		query.Set("taraweehDuration", fmt.Sprintf("%d", params.TaraweehDuration))
+		query.Set("traweehDuration", fmt.Sprintf("%d", params.TaraweehDuration))
 	}
 	if params.SuhoorDuration > 0 {
 		query.Set("suhoorDuration", fmt.Sprintf("%d", params.SuhoorDuration))

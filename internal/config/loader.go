@@ -33,6 +33,11 @@ func LoadFromFile(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
+	// Migrate legacy source values to "auto"
+	if cfg.Location.Source == "ip" || cfg.Location.Source == "gps" {
+		cfg.Location.Source = "auto"
+	}
+
 	return cfg, nil
 }
 

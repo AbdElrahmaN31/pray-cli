@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 // SlackFormatter formats output as Slack Block Kit JSON
@@ -130,6 +132,24 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 				},
 			},
 		},
+	}
+
+	// Add Du'a section if enabled
+	if data.ShowDua {
+		dua := prayer.GetDailyDua(time.Now())
+		if dua != nil {
+			message.Blocks = append(message.Blocks,
+				SlackBlock{Type: "divider"},
+				SlackBlock{
+					Type: "section",
+					Text: &SlackText{
+						Type: "mrkdwn",
+						Text: fmt.Sprintf("📖 *Today's Du'a*\n%s\n_%s_\n\"%s\"\n— %s",
+							dua.Arabic, dua.Transliteration, dua.Translation, dua.Reference),
+					},
+				},
+			)
+		}
 	}
 
 	encoder := json.NewEncoder(w)

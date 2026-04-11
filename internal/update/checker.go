@@ -6,13 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 const (
-	// GitHubReleasesURL is the API endpoint for GitHub releases
-	GitHubReleasesURL = "https://api.github.com/repos/AbdElrahmaN31/pray-cli/releases/latest"
+	// DefaultReleasesURL is the default API endpoint for GitHub releases
+	DefaultReleasesURL = "https://api.github.com/repos/AbdElrahmaN31/pray-cli/releases/latest"
 
 	// DefaultTimeout for update checks
 	DefaultTimeout = 5 * time.Second
@@ -32,6 +36,7 @@ type ReleaseInfo struct {
 // Checker checks for new versions of the CLI
 type Checker struct {
 	currentVersion string
+	releasesURL    string
 	httpClient     *http.Client
 	timeout        time.Duration
 }
@@ -40,6 +45,7 @@ type Checker struct {
 func NewChecker(currentVersion string) *Checker {
 	return &Checker{
 		currentVersion: currentVersion,
+		releasesURL:    DefaultReleasesURL,
 		httpClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
@@ -51,6 +57,12 @@ func NewChecker(currentVersion string) *Checker {
 func (c *Checker) WithTimeout(timeout time.Duration) *Checker {
 	c.timeout = timeout
 	c.httpClient.Timeout = timeout
+	return c
+}
+
+// WithReleasesURL overrides the GitHub releases API endpoint (useful for testing)
+func (c *Checker) WithReleasesURL(url string) *Checker {
+	c.releasesURL = url
 	return c
 }
 
@@ -66,7 +78,7 @@ type CheckResult struct {
 
 // Check checks for a new version
 func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", GitHubReleasesURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.releasesURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -97,9 +109,6 @@ func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
 		}, nil
 	}
 
-	latestVersion := normalizeVersion(release.TagName)
-	currentVersion := normalizeVersion(c.currentVersion)
-
 	result := &CheckResult{
 		CurrentVersion: c.currentVersion,
 		LatestVersion:  release.TagName,
@@ -108,8 +117,7 @@ func (c *Checker) Check(ctx context.Context) (*CheckResult, error) {
 		PublishedAt:    release.PublishedAt,
 	}
 
-	// Compare versions
-	result.UpdateAvailable = isNewerVersion(currentVersion, latestVersion)
+	result.UpdateAvailable = isNewerVersion(c.currentVersion, release.TagName)
 
 	return result, nil
 }
@@ -132,59 +140,34 @@ func (c *Checker) CheckAsync(ctx context.Context) <-chan *CheckResult {
 	return resultChan
 }
 
-// normalizeVersion removes the 'v' prefix from version strings
-func normalizeVersion(version string) string {
-	return strings.TrimPrefix(strings.TrimSpace(version), "v")
+// canonicalVersion ensures a version string has the "v" prefix required by
+// golang.org/x/mod/semver. It also trims whitespace.
+func canonicalVersion(version string) string {
+	v := strings.TrimSpace(version)
+	if v == "" {
+		return ""
+	}
+	if v[0] != 'v' {
+		v = "v" + v
+	}
+	return v
 }
 
-// isNewerVersion compares two semantic versions
-// Returns true if latest is newer than current
+// isNewerVersion returns true if latest is a higher semver than current.
+// Pre-release versions are compared correctly (e.g. 1.0.0-beta < 1.0.0).
 func isNewerVersion(current, latest string) bool {
-	// Handle development versions
 	if current == "dev" || current == "" {
 		return false
 	}
 
-	currentParts := parseVersion(current)
-	latestParts := parseVersion(latest)
+	cv := canonicalVersion(current)
+	lv := canonicalVersion(latest)
 
-	for i := 0; i < 3; i++ {
-		var currentPart, latestPart int
-		if i < len(currentParts) {
-			currentPart = currentParts[i]
-		}
-		if i < len(latestParts) {
-			latestPart = latestParts[i]
-		}
-
-		if latestPart > currentPart {
-			return true
-		}
-		if latestPart < currentPart {
-			return false
-		}
+	if !semver.IsValid(cv) || !semver.IsValid(lv) {
+		return false
 	}
 
-	return false
-}
-
-// parseVersion parses a version string into numeric parts
-func parseVersion(version string) []int {
-	// Remove any suffix after dash (e.g., "1.0.0-beta" -> "1.0.0")
-	if idx := strings.Index(version, "-"); idx != -1 {
-		version = version[:idx]
-	}
-
-	parts := strings.Split(version, ".")
-	result := make([]int, 0, len(parts))
-
-	for _, part := range parts {
-		var num int
-		fmt.Sscanf(part, "%d", &num)
-		result = append(result, num)
-	}
-
-	return result
+	return semver.Compare(cv, lv) < 0
 }
 
 // truncateString truncates a string to a maximum length
@@ -195,18 +178,43 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// FormatUpdateMessage formats a user-friendly update notification
+// FormatUpdateMessage formats a user-friendly update notification with
+// install-method-aware upgrade instructions.
 func FormatUpdateMessage(result *CheckResult) string {
 	if result == nil || !result.UpdateAvailable {
 		return ""
 	}
 
+	instruction := detectUpgradeInstruction()
+
 	return fmt.Sprintf(
 		"\n📦 A new version of pray is available: %s → %s\n"+
-			"   Run 'go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest' to update\n"+
+			"   %s\n"+
 			"   Or visit: %s\n",
 		result.CurrentVersion,
 		result.LatestVersion,
+		instruction,
 		result.ReleaseURL,
 	)
+}
+
+// detectUpgradeInstruction returns an upgrade command appropriate for how the
+// binary was installed. It checks the executable path for hints.
+func detectUpgradeInstruction() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return "Run 'go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest' to update"
+	}
+	exe = strings.ToLower(exe)
+
+	switch {
+	case strings.Contains(exe, "homebrew") || strings.Contains(exe, "linuxbrew"):
+		return "Run 'brew upgrade pray' to update"
+	case strings.Contains(exe, "scoop"):
+		return "Run 'scoop update pray' to update"
+	case strings.Contains(exe, filepath.Join("go", "bin")):
+		return "Run 'go install github.com/AbdElrahmaN31/pray-cli/cmd/pray@latest' to update"
+	default:
+		return "Run 'curl -sSL https://raw.githubusercontent.com/AbdElrahmaN31/pray-cli/main/install.sh | sh' to update"
+	}
 }

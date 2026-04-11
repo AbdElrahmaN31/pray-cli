@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fatih/color"
@@ -10,7 +12,7 @@ import (
 
 	"github.com/AbdElrahmaN31/pray-cli/internal/api"
 	"github.com/AbdElrahmaN31/pray-cli/internal/config"
-	"github.com/AbdElrahmaN31/pray-cli/internal/location"
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 var nextCmd = &cobra.Command{
@@ -27,82 +29,58 @@ func init() {
 func runNextCommand(cmd *cobra.Command, args []string) error {
 	cfg := GetConfig()
 
-	// Determine location
-	var lat, lon float64
-	var locationStr string
-	var tz string
-
-	// Priority: flags > config
-	if autoDetect {
-		detector := location.NewDetector()
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-
-		loc, err := detector.DetectFromIP(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to auto-detect location: %w", err)
-		}
-		lat = loc.Latitude
-		lon = loc.Longitude
-		locationStr = loc.GetDisplayAddress()
-		tz = loc.Timezone
-	} else if address != "" {
-		locationStr = address
-	} else if latitude != 0 || longitude != 0 {
-		lat = latitude
-		lon = longitude
-		locationStr = fmt.Sprintf("%.4f, %.4f", lat, lon)
-	} else if cfg.IsConfigured() {
-		lat = cfg.Location.Latitude
-		lon = cfg.Location.Longitude
-		locationStr = cfg.Location.GetDisplayAddress()
-		tz = cfg.Location.Timezone
-	} else {
+	// Resolve location
+	loc, err := resolveLocation()
+	if err != nil {
+		return err
+	}
+	if loc == nil {
 		fmt.Println("👋 No location configured. Run 'pray init' or 'pray config detect --save'")
 		return nil
 	}
 
-	// Determine method
-	methodID := cfg.Method
-	if method != 0 {
-		methodID = method
-	}
+	methodID := resolveMethod()
 
-	// Create API client
-	client := api.NewClient(api.WithTimeout(time.Duration(cfg.APITimeout) * time.Second))
+	// Create API client with caching
+	client, err := createAPIClient()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.APITimeout)*time.Second)
 	defer cancel()
 
-	// Build params
-	params := api.NewPrayerTimesParams().
-		WithDate(time.Now()).
-		WithMethod(methodID)
-
-	var resp *api.PrayerTimesResponse
-	var err error
-
-	if address != "" {
-		params.WithAddress(address)
-		resp, err = client.GetPrayerTimesByAddress(ctx, params)
-	} else {
-		params.WithCoordinates(lat, lon)
-		if tz != "" {
-			params.WithTimezone(tz)
-		}
-		resp, err = client.GetPrayerTimes(ctx, params)
-	}
-
+	// Fetch prayer times
+	resp, err := fetchPrayerTimes(ctx, client, loc, methodID, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to fetch prayer times: %w", err)
 	}
 
-	// Get current time
-	now := time.Now()
-	if tz != "" {
-		loc, err := time.LoadLocation(tz)
+	// Get Qibla if enabled and coords available
+	var qibla *api.QiblaData
+	if ShouldShowQibla() && loc.Latitude != 0 && loc.Longitude != 0 {
+		qiblaResp, err := client.GetQibla(ctx, loc.Latitude, loc.Longitude)
 		if err == nil {
-			now = time.Now().In(loc)
+			qibla = &qiblaResp.Data
 		}
+	}
+
+	// Get current time in the right timezone
+	now := time.Now()
+	if loc.Timezone != "" {
+		if tzLoc, err := time.LoadLocation(loc.Timezone); err == nil {
+			now = time.Now().In(tzLoc)
+		}
+	} else if resp.Data.Meta.Timezone != "" {
+		if tzLoc, err := time.LoadLocation(resp.Data.Meta.Timezone); err == nil {
+			now = time.Now().In(tzLoc)
+		}
+	}
+
+	// Determine language
+	lang := GetLanguage()
+	prayerNames := config.PrayerNames
+	if lang == "ar" {
+		prayerNames = config.PrayerNamesArabic
 	}
 
 	// Find next prayer
@@ -112,12 +90,12 @@ func runNextCommand(cmd *cobra.Command, args []string) error {
 		time  string
 		emoji string
 	}{
-		{"Fajr", cleanTime(timings.Fajr), "🌅"},
-		{"Sunrise", cleanTime(timings.Sunrise), "🌄"},
-		{"Dhuhr", cleanTime(timings.Dhuhr), "☀️"},
-		{"Asr", cleanTime(timings.Asr), "🌤️"},
-		{"Maghrib", cleanTime(timings.Maghrib), "🌆"},
-		{"Isha", cleanTime(timings.Isha), "🌙"},
+		{prayerNames[0], cleanTime(timings.Fajr), config.PrayerEmojis["Fajr"]},
+		{prayerNames[1], cleanTime(timings.Sunrise), config.PrayerEmojis["Sunrise"]},
+		{prayerNames[2], cleanTime(timings.Dhuhr), config.PrayerEmojis["Dhuhr"]},
+		{prayerNames[3], cleanTime(timings.Asr), config.PrayerEmojis["Asr"]},
+		{prayerNames[4], cleanTime(timings.Maghrib), config.PrayerEmojis["Maghrib"]},
+		{prayerNames[5], cleanTime(timings.Isha), config.PrayerEmojis["Isha"]},
 	}
 
 	var nextPrayer *struct {
@@ -143,6 +121,17 @@ func runNextCommand(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Hijri info
+	hijriFormat := GetHijriFormat()
+	var hijriStr string
+	if hijriFormat != "none" && hijriFormat != "" {
+		h := resp.Data.Date.Hijri
+		hijriStr = fmt.Sprintf("%s %s %s", h.Day, h.Month.En, h.Year)
+		if lang == "ar" {
+			hijriStr = fmt.Sprintf("%s %s %s", h.Day, h.Month.Ar, h.Year)
+		}
+	}
+
 	// Colors
 	cyan := color.New(color.FgCyan).SprintFunc()
 	yellow := color.New(color.FgYellow).SprintFunc()
@@ -153,36 +142,98 @@ func runNextCommand(cmd *cobra.Command, args []string) error {
 		color.NoColor = true
 	}
 
+	// Determine output writer
+	var w *os.File
+	outFile := GetOutputFile()
+	if outFile != "" {
+		f, err := os.Create(outFile)
+		if err != nil {
+			return fmt.Errorf("failed to create output file: %w", err)
+		}
+		defer f.Close()
+		w = f
+	} else {
+		w = os.Stdout
+	}
+
 	// Output based on format
 	if outputFormat == "json" {
-		if nextPrayer != nil {
-			mins := int(time.Until(nextPrayer.prayerTime).Minutes())
-			fmt.Printf(`{"name":"%s","time":"%s","minutesUntil":%d,"location":"%s"}%s`,
-				nextPrayer.name, nextPrayer.time, mins, locationStr, "\n")
-		} else {
-			fmt.Println(`{"name":null,"message":"All prayers for today have passed"}`)
+		result := buildNextJSON(nextPrayer, loc, qibla, hijriStr, cleanTime(timings.Fajr))
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(result); err != nil {
+			return err
+		}
+		if outFile != "" && !IsQuiet() {
+			fmt.Printf("✓ Output saved to: %s\n", outFile)
 		}
 		return nil
 	}
 
 	// Pretty output
-	fmt.Println()
+	fmt.Fprintln(w)
+	if hijriStr != "" {
+		fmt.Fprintf(w, "  📅 %s\n", dim(hijriStr))
+	}
+
 	if nextPrayer == nil {
-		fmt.Println("🌙 All prayers for today have passed")
-		fmt.Printf("   Tomorrow's Fajr: %s\n", cleanTime(timings.Fajr))
+		fmt.Fprintln(w, "🌙 All prayers for today have passed")
+		fmt.Fprintf(w, "   Tomorrow's Fajr: %s\n", cleanTime(timings.Fajr))
 	} else {
 		mins := int(time.Until(nextPrayer.prayerTime).Minutes())
 
-		fmt.Printf("%s %s\n", nextPrayer.emoji, cyan(fmt.Sprintf("Next Prayer: %s", nextPrayer.name)))
-		fmt.Printf("   Time: %s\n", green(nextPrayer.time))
-		fmt.Printf("   In:   %s\n", yellow(formatMinutesLong(mins)))
-		fmt.Println()
-		fmt.Printf("   %s\n", dim(fmt.Sprintf("Location: %s", locationStr)))
-		fmt.Printf("   %s\n", dim(fmt.Sprintf("Method: %s", config.GetMethodName(methodID))))
+		fmt.Fprintf(w, "%s %s\n", nextPrayer.emoji, cyan(fmt.Sprintf("Next Prayer: %s", nextPrayer.name)))
+		fmt.Fprintf(w, "   Time: %s\n", green(nextPrayer.time))
+		fmt.Fprintf(w, "   In:   %s\n", yellow(formatMinutesLong(mins)))
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("Location: %s", loc.DisplayName)))
+		fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("Method: %s", config.GetMethodName(methodID))))
 	}
-	fmt.Println()
+
+	// Qibla
+	if qibla != nil && ShouldShowQibla() {
+		compass := prayer.GetCompassDirection(qibla.Direction)
+		fmt.Fprintf(w, "   🧭 Qibla: %s (%.1f°)\n", compass, qibla.Direction)
+	}
+
+	fmt.Fprintln(w)
+
+	if outFile != "" && !IsQuiet() {
+		fmt.Printf("✓ Output saved to: %s\n", outFile)
+	}
 
 	return nil
+}
+
+// buildNextJSON builds a JSON-friendly map for the next prayer output
+func buildNextJSON(nextPrayer *struct {
+	name       string
+	time       string
+	emoji      string
+	prayerTime time.Time
+}, loc *ResolvedLocation, qibla *api.QiblaData, hijriStr, fajrTime string) map[string]interface{} {
+	result := map[string]interface{}{}
+	if nextPrayer != nil {
+		mins := int(time.Until(nextPrayer.prayerTime).Minutes())
+		result["name"] = nextPrayer.name
+		result["time"] = nextPrayer.time
+		result["minutesUntil"] = mins
+		result["location"] = loc.DisplayName
+	} else {
+		result["name"] = nil
+		result["message"] = "All prayers for today have passed"
+		result["tomorrowFajr"] = fajrTime
+	}
+	if hijriStr != "" {
+		result["hijri"] = hijriStr
+	}
+	if qibla != nil {
+		result["qibla"] = map[string]interface{}{
+			"direction": qibla.Direction,
+			"compass":   prayer.GetCompassDirection(qibla.Direction),
+		}
+	}
+	return result
 }
 
 // cleanTime removes timezone info from time string

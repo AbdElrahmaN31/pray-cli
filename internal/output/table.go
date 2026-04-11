@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/AbdElrahmaN31/pray-cli/pkg/prayer"
 )
 
 // TableFormatter formats output as an ASCII table
@@ -45,6 +48,13 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 		hijri := date.Hijri
 		hijriStr := fmt.Sprintf("%s %s %s", hijri.Day, hijri.Month.En, hijri.Year)
 		fmt.Fprintf(w, "│%s│\n", centerText(hijriStr, 50))
+	}
+
+	// Hijri holidays
+	if data.HijriHolidays && len(date.Hijri.Holidays) > 0 {
+		for _, holiday := range date.Hijri.Holidays {
+			fmt.Fprintf(w, "│%s│\n", centerText("🎉 "+holiday, 50))
+		}
 	}
 
 	// Create prayers list with status
@@ -85,9 +95,26 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 		}
 	}
 
+	// Parse iqama offsets
+	var iqamaOffsets []int
+	if data.IqamaEnabled && data.IqamaOffsets != "" {
+		parts := strings.Split(data.IqamaOffsets, ",")
+		for _, pt := range parts {
+			offset, err := strconv.Atoi(strings.TrimSpace(pt))
+			if err != nil {
+				offset = 0
+			}
+			iqamaOffsets = append(iqamaOffsets, offset)
+		}
+	}
+
 	// Table
 	table := tablewriter.NewTable(os.Stdout)
-	table.Header("Prayer", "Time", "Status")
+	if data.IqamaEnabled && len(iqamaOffsets) > 0 {
+		table.Header("Prayer", "Time", "Iqama", "Status")
+	} else {
+		table.Header("Prayer", "Time", "Status")
+	}
 
 	for i, p := range prayers {
 		status := ""
@@ -106,11 +133,20 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 			}
 		}
 
-		table.Append(prayerName, prayerTime, status)
+		if data.IqamaEnabled && len(iqamaOffsets) > 0 {
+			iqamaStr := "-"
+			if i < len(iqamaOffsets) && iqamaOffsets[i] > 0 && err == nil {
+				iqamaTime := prayerDateTime.Add(time.Duration(iqamaOffsets[i]) * time.Minute)
+				iqamaStr = iqamaTime.Format("15:04")
+			}
+			_ = table.Append(prayerName, prayerTime, iqamaStr, status)
+		} else {
+			_ = table.Append(prayerName, prayerTime, status)
+		}
 	}
 
 	fmt.Fprintln(w, "├──────────────────────────────────────────────────┤")
-	table.Render()
+	_ = table.Render()
 
 	// Footer with Qibla and Method
 	fmt.Fprintf(w, "├──────────────────────────────────────────────────┤\n")
@@ -122,6 +158,17 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 	}
 	fmt.Fprintf(w, "│ Method: %s%s│\n", data.Method, strings.Repeat(" ", 50-len(fmt.Sprintf(" Method: %s", data.Method))-1))
 	fmt.Fprintf(w, "└──────────────────────────────────────────────────┘\n")
+
+	// Du'a
+	if data.ShowDua {
+		dua := prayer.GetDailyDua(time.Now())
+		if dua != nil {
+			dim := color.New(color.Faint).SprintFunc()
+			fmt.Fprintln(w)
+			fmt.Fprintf(w, "📖 %s\n", dua.Arabic)
+			fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("\"%s\" — %s", dua.Translation, dua.Reference)))
+		}
+	}
 
 	return nil
 }

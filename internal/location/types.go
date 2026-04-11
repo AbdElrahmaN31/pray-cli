@@ -13,7 +13,7 @@ type Location struct {
 	CountryCode string    `yaml:"country_code,omitempty" json:"countryCode,omitempty"`
 	Timezone    string    `yaml:"timezone" json:"timezone"`
 	DetectedAt  time.Time `yaml:"detected_at,omitempty" json:"detectedAt,omitempty"`
-	Source      string    `yaml:"source" json:"source"` // "ip", "manual", "gps"
+	Source      string    `yaml:"source" json:"source"` // "auto", "manual"
 }
 
 // IPGeoResponse represents the response from ip-api.com
