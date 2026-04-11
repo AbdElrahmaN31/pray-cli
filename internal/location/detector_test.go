@@ -321,8 +321,8 @@ func TestDetectFromIPIntegration(t *testing.T) {
 		t.Errorf("DetectFromIP returned invalid location: %+v", loc)
 	}
 
-	if loc.Source != "ip" {
-		t.Errorf("Expected source 'ip', got %s", loc.Source)
+	if loc.Source != "auto" {
+		t.Errorf("Expected source 'auto', got %s", loc.Source)
 	}
 
 	if loc.Timezone == "" {
