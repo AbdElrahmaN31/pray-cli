@@ -130,7 +130,7 @@ func fetchAndDisplayPrayerTimes(cmd *cobra.Command, date time.Time) error {
 	data := &output.PrayerData{
 		Response:      resp,
 		Location:      loc.DisplayName,
-		Method:        config.GetMethodName(methodID),
+		Method:        config.GetMethodNameLang(methodID, lang),
 		Qibla:         qibla,
 		ShowQibla:     ShouldShowQibla(),
 		ShowDua:       ShouldShowDua(),

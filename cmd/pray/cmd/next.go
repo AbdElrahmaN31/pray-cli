@@ -187,7 +187,7 @@ func runNextCommand(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(w, "   In:   %s\n", yellow(formatMinutesLong(mins)))
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("Location: %s", loc.DisplayName)))
-		fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("Method: %s", config.GetMethodName(methodID))))
+		fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("Method: %s", config.GetMethodNameLang(methodID, lang))))
 	}
 
 	// Qibla

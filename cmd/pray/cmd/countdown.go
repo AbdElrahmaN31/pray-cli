@@ -208,7 +208,7 @@ func runCountdownCommand(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 			fmt.Printf("  %s %s\n", "📍", dim(loc.DisplayName))
-			fmt.Printf("  %s %s\n", "⚙️", dim(config.GetMethodName(methodID)))
+			fmt.Printf("  %s %s\n", "⚙️", dim(config.GetMethodNameLang(methodID, lang)))
 			fmt.Printf("  %s %s\n", "🕐", dim(now.Format("15:04:05")))
 			if qibla != nil {
 				compass := prayer.GetCompassDirection(qibla.Direction)

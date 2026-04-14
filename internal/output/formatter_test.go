@@ -207,6 +207,66 @@ func TestWebhookFormatter(t *testing.T) {
 	}
 }
 
+func TestArabicLocalization(t *testing.T) {
+	arabicPrayerNames := []string{"الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء"}
+
+	tests := []struct {
+		name      string
+		formatter Formatter
+		mustHave  []string
+	}{
+		{
+			// Note: TableFormatter writes the table body to os.Stdout (see table.go),
+			// so buf only captures the header/footer. Assert on what lands in buf.
+			name:      "table",
+			formatter: &TableFormatter{},
+			mustHave:  []string{"مواقيت الصلاة", "طريقة الحساب", "شعبان"},
+		},
+		{
+			name:      "pretty",
+			formatter: &PrettyFormatter{},
+			mustHave:  append(arabicPrayerNames, "مواقيت الصلاة لـ", "طريقة الحساب", "شعبان"),
+		},
+		{
+			name:      "slack",
+			formatter: &SlackFormatter{},
+			mustHave:  append(arabicPrayerNames, "مواقيت الصلاة", "طريقة الحساب"),
+		},
+		{
+			name:      "discord",
+			formatter: &DiscordFormatter{},
+			mustHave:  append(arabicPrayerNames, "مواقيت الصلاة", "طريقة الحساب"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := createTestPrayerData()
+			data.Language = "ar"
+
+			var buf bytes.Buffer
+			if err := tt.formatter.Format(&buf, data); err != nil {
+				t.Fatalf("Format() error = %v", err)
+			}
+			out := buf.String()
+			for _, want := range tt.mustHave {
+				if !strings.Contains(out, want) {
+					t.Errorf("%s output missing Arabic string %q", tt.name, want)
+				}
+			}
+			// English prayer names should NOT appear when lang=ar (except in table buf
+			// which doesn't include the body; skip that check there).
+			if tt.name != "table" {
+				for _, eng := range []string{"Fajr", "Dhuhr", "Isha"} {
+					if strings.Contains(out, eng) {
+						t.Errorf("%s output should not contain English %q when lang=ar", tt.name, eng)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestFormatWithNilResponse(t *testing.T) {
 	data := &PrayerData{
 		Response: nil,

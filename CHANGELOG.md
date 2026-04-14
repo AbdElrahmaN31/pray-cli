@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-14
+
+### Added
+
+- i18n translation system with Arabic language support — all output formatters render calculation method names in the configured locale
+- Arabic names for all 23+ calculation methods
+
+### Changed
+
+- Table, pretty, JSON, Slack, and Discord formatters now use localized method names
+- Command output uses localized method names throughout
+
 ## [1.1.0] - 2026-04-11
 
 ### Added
@@ -106,7 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial project scaffolding
 
-[Unreleased]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/AbdElrahmaN31/pray-cli/compare/v1.0.5...v1.0.6
