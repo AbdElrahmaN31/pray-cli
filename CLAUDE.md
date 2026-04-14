@@ -56,6 +56,34 @@ Run a single test: `go test -v -run TestName ./internal/api/`
 - **olekukonko/tablewriter** - ASCII tables
 - **gopkg.in/yaml.v3** - YAML parsing
 
+## Git Workflow
+
+### Commits
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+  `type(scope)!: description`
+
+- **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- **Scope** is optional but recommended for targeted changes (e.g., `fix(api): ...`)
+- **Breaking changes**: use `!` after type/scope (e.g., `feat!: drop Go 1.22 support`)
+- Merge commits are exempt from linting
+
+### Branches
+- `main` — protected; all changes land via PRs
+- `release/vX.Y.Z` — release preparation branches (e.g., `release/v1.1.0`)
+
+### CI (runs on PRs and pushes to `main`)
+1. **Tests** — `go test -v -race` on Go 1.23 and 1.24
+2. **Lint** — golangci-lint + `gofmt` check + `go vet`
+3. **Build** — cross-compile (linux/darwin/windows, amd64/arm64)
+4. **Commitlint** — validates all PR commits follow conventional format
+
+### Releases
+Triggered by pushing a `v*` tag (e.g., `git tag v1.2.0 && git push origin v1.2.0`):
+- GoReleaser builds binaries for Linux/macOS/Windows (amd64/arm64/arm)
+- Checksums signed with cosign
+- Changelog auto-generated (excludes docs/test/chore/ci commits)
+- GitHub Release created with install instructions
+
 ## Module Path
 
 `github.com/AbdElrahmaN31/pray-cli` (Go 1.23+)
