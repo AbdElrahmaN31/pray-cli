@@ -135,11 +135,3 @@ func formatDuration(lang string, mins int) string {
 	}
 	return fmt.Sprintf("%d"+u.hrMin, hours, remaining)
 }
-
-// weekday returns the Arabic or English weekday based on lang.
-func weekday(lang string, w api.Weekday) string {
-	if lang == "ar" && w.Ar != "" {
-		return w.Ar
-	}
-	return w.En
-}
