@@ -39,12 +39,12 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 
 	// Header
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "🕌 %s\n", bold(fmt.Sprintf("Prayer Times for %s", data.Location)))
+	fmt.Fprintf(w, "🕌 %s\n", bold(fmt.Sprintf("%s %s", t(data.Language, "prayer_times_for"), data.Location)))
 	fmt.Fprintf(w, "📅 %s", date.Readable)
 
 	if data.ShowHijri && data.HijriFormat != "none" {
 		hijri := date.Hijri
-		fmt.Fprintf(w, " | %s %s %s", hijri.Day, hijri.Month.En, hijri.Year)
+		fmt.Fprintf(w, " | %s %s %s", hijri.Day, hijriMonth(data.Language, hijri.Month), hijri.Year)
 	}
 	fmt.Fprintln(w)
 
@@ -63,13 +63,13 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 		time  string
 		emoji string
 	}{
-		{"Fajr", cleanTime(timings.Fajr), "🌅"},
-		{"Sunrise", cleanTime(timings.Sunrise), "🌄"},
-		{"Dhuhr", cleanTime(timings.Dhuhr), "☀️"},
-		{"Asr", cleanTime(timings.Asr), "🌤️"},
-		{"Maghrib", cleanTime(timings.Maghrib), "🌆"},
-		{"Isha", cleanTime(timings.Isha), "🌙"},
-		{"Midnight", cleanTime(timings.Midnight), "🌃"},
+		{t(data.Language, keyFajr), cleanTime(timings.Fajr), "🌅"},
+		{t(data.Language, keySunrise), cleanTime(timings.Sunrise), "🌄"},
+		{t(data.Language, keyDhuhr), cleanTime(timings.Dhuhr), "☀️"},
+		{t(data.Language, keyAsr), cleanTime(timings.Asr), "🌤️"},
+		{t(data.Language, keyMaghrib), cleanTime(timings.Maghrib), "🌆"},
+		{t(data.Language, keyIsha), cleanTime(timings.Isha), "🌙"},
+		{t(data.Language, keyMidnight), cleanTime(timings.Midnight), "🌃"},
 	}
 
 	// Get current time
@@ -119,16 +119,16 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 		if data.IqamaEnabled && i < len(iqamaOffsets) && iqamaOffsets[i] > 0 {
 			if err == nil {
 				iqamaTime := prayerTime.Add(time.Duration(iqamaOffsets[i]) * time.Minute)
-				prayerDisplay += dim(fmt.Sprintf("  (Iqama: %s)", iqamaTime.Format("15:04")))
+				prayerDisplay += dim(fmt.Sprintf("  (%s: %s)", t(data.Language, "iqama"), iqamaTime.Format("15:04")))
 			}
 		}
 
 		if err == nil {
 			if now.After(prayerTime) {
-				status = dim("✓ Passed")
+				status = dim("✓ " + t(data.Language, "passed"))
 			} else if i == nextPrayerIdx {
 				mins := int(time.Until(prayerTime).Minutes())
-				status = yellow(fmt.Sprintf("▶ Next prayer in %s", formatMinutes(mins)))
+				status = yellow(fmt.Sprintf("▶ %s %s", t(data.Language, "next_prayer_in"), formatDuration(data.Language, mins)))
 				prayerDisplay = cyan(prayerDisplay)
 			}
 		}
@@ -145,14 +145,14 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 	// Qibla
 	if data.ShowQibla && data.Qibla != nil {
 		compass := getCompassDirection(data.Qibla.Direction)
-		fmt.Fprintf(w, "🧭 Qibla Direction: %s (%.1f°)\n", green(compass), data.Qibla.Direction)
+		fmt.Fprintf(w, "🧭 %s: %s (%.1f°)\n", t(data.Language, "qibla_direction"), green(compass), data.Qibla.Direction)
 	}
 
 	// Du'a
 	if data.ShowDua {
 		dua := prayer.GetDailyDua(time.Now())
 		if dua != nil {
-			fmt.Fprintf(w, "📖 Today's Du'a:\n")
+			fmt.Fprintf(w, "📖 %s:\n", t(data.Language, "todays_dua"))
 			fmt.Fprintf(w, "   %s\n", dua.Arabic)
 			fmt.Fprintf(w, "   %s\n", dim(dua.Transliteration))
 			fmt.Fprintf(w, "   %s\n", dim(fmt.Sprintf("\"%s\"", dua.Translation)))
@@ -161,7 +161,7 @@ func (f *PrettyFormatter) Format(w io.Writer, data *PrayerData) error {
 	}
 
 	// Method
-	fmt.Fprintf(w, "⚙️  Method: %s\n", dim(data.Method))
+	fmt.Fprintf(w, "⚙️  %s: %s\n", t(data.Language, "method"), dim(data.Method))
 	fmt.Fprintln(w)
 
 	return nil
