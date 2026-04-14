@@ -182,7 +182,7 @@ func runDiffCommand(cmd *cobra.Command, args []string) error {
 	table.Render()
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "⚙️  Method: %s\n", config.GetMethodName(methodID))
+	fmt.Fprintf(w, "⚙️  Method: %s\n", config.GetMethodNameLang(methodID, lang))
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Note: Positive difference means location 2 is later")
 	fmt.Fprintln(w)
