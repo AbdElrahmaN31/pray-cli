@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
@@ -41,12 +42,12 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 	// Header
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "┌──────────────────────────────────────────────────┐\n")
-	fmt.Fprintf(w, "│%s│\n", centerText(fmt.Sprintf("Prayer Times - %s", data.Location), 50))
+	fmt.Fprintf(w, "│%s│\n", centerText(fmt.Sprintf(t(data.Language, "prayer_times_dash"), data.Location), 50))
 	fmt.Fprintf(w, "│%s│\n", centerText(date.Readable, 50))
 
 	if data.ShowHijri && data.HijriFormat != "none" {
 		hijri := date.Hijri
-		hijriStr := fmt.Sprintf("%s %s %s", hijri.Day, hijri.Month.En, hijri.Year)
+		hijriStr := fmt.Sprintf("%s %s %s", hijri.Day, hijriMonth(data.Language, hijri.Month), hijri.Year)
 		fmt.Fprintf(w, "│%s│\n", centerText(hijriStr, 50))
 	}
 
@@ -59,17 +60,18 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 
 	// Create prayers list with status
 	prayers := []struct {
+		key   string
 		name  string
 		time  string
 		emoji string
 	}{
-		{"Fajr", cleanTime(timings.Fajr), "🌅"},
-		{"Sunrise", cleanTime(timings.Sunrise), "🌄"},
-		{"Dhuhr", cleanTime(timings.Dhuhr), "☀️"},
-		{"Asr", cleanTime(timings.Asr), "🌤️"},
-		{"Maghrib", cleanTime(timings.Maghrib), "🌆"},
-		{"Isha", cleanTime(timings.Isha), "🌙"},
-		{"Midnight", cleanTime(timings.Midnight), "🌃"},
+		{keyFajr, t(data.Language, keyFajr), cleanTime(timings.Fajr), "🌅"},
+		{keySunrise, t(data.Language, keySunrise), cleanTime(timings.Sunrise), "🌄"},
+		{keyDhuhr, t(data.Language, keyDhuhr), cleanTime(timings.Dhuhr), "☀️"},
+		{keyAsr, t(data.Language, keyAsr), cleanTime(timings.Asr), "🌤️"},
+		{keyMaghrib, t(data.Language, keyMaghrib), cleanTime(timings.Maghrib), "🌆"},
+		{keyIsha, t(data.Language, keyIsha), cleanTime(timings.Isha), "🌙"},
+		{keyMidnight, t(data.Language, keyMidnight), cleanTime(timings.Midnight), "🌃"},
 	}
 
 	// Get current time for status
@@ -111,9 +113,9 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 	// Table
 	table := tablewriter.NewTable(os.Stdout)
 	if data.IqamaEnabled && len(iqamaOffsets) > 0 {
-		table.Header("Prayer", "Time", "Iqama", "Status")
+		table.Header(t(data.Language, "prayer"), t(data.Language, "time"), t(data.Language, "iqama"), t(data.Language, "status"))
 	} else {
-		table.Header("Prayer", "Time", "Status")
+		table.Header(t(data.Language, "prayer"), t(data.Language, "time"), t(data.Language, "status"))
 	}
 
 	for i, p := range prayers {
@@ -124,10 +126,10 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 		prayerDateTime, err := parseTimeToday(p.time, now)
 		if err == nil {
 			if now.After(prayerDateTime) {
-				status = dim("✓ Passed")
+				status = dim("✓ " + t(data.Language, "passed"))
 			} else if i == nextPrayerIdx {
 				mins := int(time.Until(prayerDateTime).Minutes())
-				status = yellow(fmt.Sprintf("▶ Next (in %s)", formatMinutes(mins)))
+				status = yellow(fmt.Sprintf("▶ %s (%s)", t(data.Language, "next"), formatDuration(data.Language, mins)))
 				prayerName = cyan(p.name)
 				prayerTime = green(p.time)
 			}
@@ -152,11 +154,12 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 	fmt.Fprintf(w, "├──────────────────────────────────────────────────┤\n")
 	if data.ShowQibla && data.Qibla != nil {
 		compass := getCompassDirection(data.Qibla.Direction)
-		fmt.Fprintf(w, "│ Qibla: %.1f° (%s)%s│\n",
-			data.Qibla.Direction, compass,
-			strings.Repeat(" ", 50-len(fmt.Sprintf(" Qibla: %.1f° (%s)", data.Qibla.Direction, compass))-1))
+		qiblaLabel := t(data.Language, "qibla")
+		line := fmt.Sprintf(" %s: %.1f° (%s)", qiblaLabel, data.Qibla.Direction, compass)
+		fmt.Fprintf(w, "│%s%s│\n", line, strings.Repeat(" ", padWidth(line, 50)))
 	}
-	fmt.Fprintf(w, "│ Method: %s%s│\n", data.Method, strings.Repeat(" ", 50-len(fmt.Sprintf(" Method: %s", data.Method))-1))
+	methodLine := fmt.Sprintf(" %s: %s", t(data.Language, "method"), data.Method)
+	fmt.Fprintf(w, "│%s%s│\n", methodLine, strings.Repeat(" ", padWidth(methodLine, 50)))
 	fmt.Fprintf(w, "└──────────────────────────────────────────────────┘\n")
 
 	// Du'a
@@ -173,13 +176,24 @@ func (f *TableFormatter) Format(w io.Writer, data *PrayerData) error {
 	return nil
 }
 
-// centerText centers text within a given width
+// centerText centers text within a given width (rune-based, not byte-based).
 func centerText(text string, width int) string {
-	if len(text) >= width {
-		return text[:width]
+	runeLen := utf8.RuneCountInString(text)
+	if runeLen >= width {
+		return text
 	}
-	padding := (width - len(text)) / 2
-	return strings.Repeat(" ", padding) + text + strings.Repeat(" ", width-padding-len(text))
+	padding := (width - runeLen) / 2
+	return strings.Repeat(" ", padding) + text + strings.Repeat(" ", width-padding-runeLen)
+}
+
+// padWidth returns the number of spaces needed to pad a string to the given rune width.
+// Returns 0 if the string is already wider than the target width.
+func padWidth(s string, width int) int {
+	runeLen := utf8.RuneCountInString(s)
+	if runeLen >= width {
+		return 0
+	}
+	return width - runeLen
 }
 
 // cleanTime removes timezone info from time string (e.g., "05:23 (EET)" -> "05:23")

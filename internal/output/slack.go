@@ -61,18 +61,19 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 	}
 
 	prayers := []struct {
+		key  string
 		name string
 		time string
 	}{
-		{"Fajr", cleanTime(timings.Fajr)},
-		{"Sunrise", cleanTime(timings.Sunrise)},
-		{"Dhuhr", cleanTime(timings.Dhuhr)},
-		{"Asr", cleanTime(timings.Asr)},
-		{"Maghrib", cleanTime(timings.Maghrib)},
-		{"Isha", cleanTime(timings.Isha)},
+		{keyFajr, t(data.Language, keyFajr), cleanTime(timings.Fajr)},
+		{keySunrise, t(data.Language, keySunrise), cleanTime(timings.Sunrise)},
+		{keyDhuhr, t(data.Language, keyDhuhr), cleanTime(timings.Dhuhr)},
+		{keyAsr, t(data.Language, keyAsr), cleanTime(timings.Asr)},
+		{keyMaghrib, t(data.Language, keyMaghrib), cleanTime(timings.Maghrib)},
+		{keyIsha, t(data.Language, keyIsha), cleanTime(timings.Isha)},
 	}
 
-	// Find next prayer
+	// Find next prayer (compared by stable key, not localized name)
 	nextPrayer := ""
 	for _, p := range prayers {
 		prayerTime, err := parseTimeToday(p.time, now)
@@ -80,7 +81,7 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 			continue
 		}
 		if now.Before(prayerTime) {
-			nextPrayer = p.name
+			nextPrayer = p.key
 			break
 		}
 	}
@@ -91,7 +92,7 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 				Type: "header",
 				Text: &SlackText{
 					Type:  "plain_text",
-					Text:  fmt.Sprintf("🕌 Prayer Times - %s", data.Location),
+					Text:  fmt.Sprintf("🕌 %s", fmt.Sprintf(t(data.Language, "prayer_times_dash"), data.Location)),
 					Emoji: true,
 				},
 			},
@@ -111,7 +112,7 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 					fields := make([]SlackText, 0)
 					for _, p := range prayers {
 						indicator := ""
-						if p.name == nextPrayer {
+						if p.key == nextPrayer {
 							indicator = " ▶️"
 						}
 						fields = append(fields, SlackText{
@@ -127,7 +128,7 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 				Elements: []SlackElement{
 					{
 						Type: "mrkdwn",
-						Text: fmt.Sprintf("Method: %s", data.Method),
+						Text: fmt.Sprintf("%s: %s", t(data.Language, "method"), data.Method),
 					},
 				},
 			},
@@ -144,8 +145,8 @@ func (f *SlackFormatter) Format(w io.Writer, data *PrayerData) error {
 					Type: "section",
 					Text: &SlackText{
 						Type: "mrkdwn",
-						Text: fmt.Sprintf("📖 *Today's Du'a*\n%s\n_%s_\n\"%s\"\n— %s",
-							dua.Arabic, dua.Transliteration, dua.Translation, dua.Reference),
+						Text: fmt.Sprintf("📖 *%s*\n%s\n_%s_\n\"%s\"\n— %s",
+							t(data.Language, "todays_dua"), dua.Arabic, dua.Transliteration, dua.Translation, dua.Reference),
 					},
 				},
 			)

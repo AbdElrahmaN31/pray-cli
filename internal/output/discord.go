@@ -62,18 +62,19 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 	}
 
 	prayers := []struct {
+		key  string
 		name string
 		time string
 	}{
-		{"Fajr", cleanTime(timings.Fajr)},
-		{"Sunrise", cleanTime(timings.Sunrise)},
-		{"Dhuhr", cleanTime(timings.Dhuhr)},
-		{"Asr", cleanTime(timings.Asr)},
-		{"Maghrib", cleanTime(timings.Maghrib)},
-		{"Isha", cleanTime(timings.Isha)},
+		{keyFajr, t(data.Language, keyFajr), cleanTime(timings.Fajr)},
+		{keySunrise, t(data.Language, keySunrise), cleanTime(timings.Sunrise)},
+		{keyDhuhr, t(data.Language, keyDhuhr), cleanTime(timings.Dhuhr)},
+		{keyAsr, t(data.Language, keyAsr), cleanTime(timings.Asr)},
+		{keyMaghrib, t(data.Language, keyMaghrib), cleanTime(timings.Maghrib)},
+		{keyIsha, t(data.Language, keyIsha), cleanTime(timings.Isha)},
 	}
 
-	// Find next prayer
+	// Find next prayer (compared by stable key, not localized name)
 	nextPrayer := ""
 	for _, p := range prayers {
 		prayerTime, err := parseTimeToday(p.time, now)
@@ -81,7 +82,7 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 			continue
 		}
 		if now.Before(prayerTime) {
-			nextPrayer = p.name
+			nextPrayer = p.key
 			break
 		}
 	}
@@ -90,7 +91,7 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 	fields := make([]DiscordField, 0)
 	for _, p := range prayers {
 		value := p.time
-		if p.name == nextPrayer {
+		if p.key == nextPrayer {
 			value = fmt.Sprintf("%s ▶️", p.time)
 		}
 		fields = append(fields, DiscordField{
@@ -105,7 +106,7 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 		dua := prayer.GetDailyDua(time.Now())
 		if dua != nil {
 			fields = append(fields, DiscordField{
-				Name:   "📖 Today's Du'a",
+				Name:   "📖 " + t(data.Language, "todays_dua"),
 				Value:  fmt.Sprintf("%s\n*%s*\n\"%s\" — %s", dua.Arabic, dua.Transliteration, dua.Translation, dua.Reference),
 				Inline: false,
 			})
@@ -116,12 +117,12 @@ func (f *DiscordFormatter) Format(w io.Writer, data *PrayerData) error {
 	message := DiscordMessage{
 		Embeds: []DiscordEmbed{
 			{
-				Title:       "🕌 Prayer Times",
+				Title:       fmt.Sprintf("🕌 %s", fmt.Sprintf(t(data.Language, "prayer_times_dash"), data.Location)),
 				Description: fmt.Sprintf("**%s**\n%s", data.Location, date.Readable),
 				Color:       1942002,
 				Fields:      fields,
 				Footer: &DiscordFooter{
-					Text: fmt.Sprintf("Method: %s", data.Method),
+					Text: fmt.Sprintf("%s: %s", t(data.Language, "method"), data.Method),
 				},
 				Timestamp: time.Now().UTC().Format(time.RFC3339),
 			},
